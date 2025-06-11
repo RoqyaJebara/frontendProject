@@ -1,0 +1,92 @@
+
+/* //#205e86 */
+.color{color:#205e86}
+body {
+  background-color: #ffffff;
+  /* color: #333; */
+  font-family: "Segoe UI", sans-serif;
+}
+
+h1, h2, h3 {
+  color: #18547a;
+}
+
+.btn-primary {
+  background-color: #18547a;
+  color: #fff;
+}
+
+.section-highlight {
+  background-color: #c7f6f4;
+}
+@media screen and (max-width: 414px) {
+  header a,
+  footer .LMS {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 20px;
+     color:#18547a
+  }
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+  }
+  .navbar-brand img {
+    height: 60px;
+  }
+}
+
+.login-box {
+  max-width: 400px;
+  margin: auto;
+  margin-top: 80px;
+  background-color: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+.about-section {
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding: 40px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.feature-icon {
+  width: 40px;
+  margin-right: 10px;
+}
+.contact-section {
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding: 40px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.form-container {
+  max-width: 500px;
+  margin: 100px auto;
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.courseCard {
+  transition: transform 0.3s ease;
+  border-radius: 1rem;
+   width: 18rem;
+}
+.courseCard:hover {
+  transform: translateY(-5px);
+}
+ .heigthProgress{ height: "20px";}
+.stdcourseAside{
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+  height: 100%;
+  background-color: #f1f1f1;
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid #ccc;
+
+}
