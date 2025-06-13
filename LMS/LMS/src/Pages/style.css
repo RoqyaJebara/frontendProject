@@ -90,3 +90,29 @@ h1, h2, h3 {
   border-right: 1px solid #ccc;
 
 }
+  @media print {
+    /* Hide print button */
+    .no-print {
+      display: none !important;
+    }
+    /* Hide buttons, nav, and footer */
+    button, nav, footer, .no-print {
+      display: none !important;
+    }
+    /* Make container full width for print */
+    body, .container {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      color: black !important;
+      background: white !important;
+    }
+    /* Optimize canvas and table printing */
+    canvas {
+      max-width: 100% !important;
+      page-break-inside: avoid;
+    }
+    table {
+      page-break-inside: avoid;
+    }
+  }

@@ -40,6 +40,14 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             🏷️ Categories
           </button>
         </li>
+        <li className="nav-item mb-2">
+  <button
+    className={`nav-link btn btn-link text-start ${activeSection === "analytics" ? "fw-bold text-info" : "fw-bold text-black"}`}
+    onClick={() => setActiveSection("analytics")}
+  >
+    📊 Analytics
+  </button>
+</li>
       </ul>
     </div>
   );

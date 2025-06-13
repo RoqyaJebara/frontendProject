@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../Components/AdminSidebar";
+import AdminAnalytics from "../Components/AdminAnalytics";
 
 export const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
@@ -121,9 +122,9 @@ useEffect(() => {
       />
       <div className="flex-grow-1 p-4">
         
-<h2 className="fw-bold mb-4 text-center" style={{ color: "#18547a" }}>
+<h1 className="fw-bold mb-4 text-center" style={{ color: "#18547a" }}>
   🧑‍💼 {adminName}'s Dashboard
-</h2>
+</h1>
         {activeSection === "students" && (
           <section>
             <h3>Students</h3>
@@ -280,6 +281,12 @@ useEffect(() => {
             </table>
           </section>
         )}
+        {activeSection === "analytics" && (
+  <section>
+    <h3>Course Analytics</h3>
+    <AdminAnalytics />
+  </section>
+)}
       </div>
     </div>
   );
