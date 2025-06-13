@@ -1,71 +1,89 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const QuizViewer = ({ lessonId }) => {
+const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
   const [quiz, setQuiz] = useState(null);
+  const [quizId, setQuizId] = useState(null);  // حفظ quizId صراحة
   const [questions, setQuestions] = useState([]);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchQuizAndQuestions = async () => {
       try {
+        setLoading(true);
         const quizRes = await axios.get(`http://localhost:5000/quizzes/${lessonId}`);
         const quizData = quizRes.data;
         setQuiz(quizData);
+        setQuizId(quizData.id);  // هنا
 
         const questionsRes = await axios.get(`http://localhost:5000/questions/${quizData.id}`);
-        const parsedQuestions = questionsRes.data.map((q) => ({
-          ...q,
-          options: q.options, // تأكد أن هذا مصفوفة بالفعل
-        }));
-        setQuestions(parsedQuestions);
+        setQuestions(questionsRes.data);
 
-        // تحميل البيانات من localStorage
-        const saved = localStorage.getItem(`quiz_${quizData.id}`);
+        // تحقق من محاولة سابقة باستخدام quizId
+        const saved = localStorage.getItem(`quiz_${quizData.id}_${userId}`);
         if (saved) {
           const { savedAnswers, savedScore } = JSON.parse(saved);
           setSelectedAnswers(savedAnswers);
           setScore(savedScore);
           setSubmitted(true);
         }
-
+        setLoading(false);
       } catch (error) {
         console.error("Error loading quiz or questions:", error);
+        setLoading(false);
       }
     };
 
     if (lessonId) fetchQuizAndQuestions();
-  }, [lessonId]);
+  }, [lessonId, userId]);
 
   const handleAnswerChange = (questionId, selectedOption) => {
+    if (submitted) return;
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: selectedOption }));
   };
 
-  const handleSubmit = () => {
-    if (!questions.length) return;
+  const handleSubmit = async () => {
+    if (submitted) return;
 
-    let correct = 0;
-    questions.forEach((q) => {
-      if (selectedAnswers[q.id] === q.correct_answer) correct++;
-    });
+    try {
+      // حساب النتيجة
+      let calculatedScore = 0;
+      questions.forEach((q) => {
+        if (selectedAnswers[q.id] === q.correct_answer) {
+          calculatedScore += q.points || 1;
+        }
+      });
 
-    const finalScore = `${correct} / ${questions.length}`;
-    setScore(finalScore);
-    setSubmitted(true);
+      // إرسال البيانات مع quizId
+      await axios.post("http://localhost:5000/quizzes/quiz-grades", {
+        lessonId,
+        quizId,
+        userId,
+        answers: selectedAnswers,
+        grade: calculatedScore,
+      });
 
-    // حفظ الإجابات والنتيجة في localStorage
-    localStorage.setItem(
-      `quiz_${quiz.id}`,
-      JSON.stringify({
-        savedAnswers: selectedAnswers,
-        savedScore: finalScore,
-      })
-    );
+      // حفظ في localStorage باستخدام quizId
+      localStorage.setItem(
+        `quiz_${quizId}_${userId}`,
+        JSON.stringify({ savedAnswers: selectedAnswers, savedScore: calculatedScore })
+      );
+
+      setScore(calculatedScore);
+      setSubmitted(true);
+
+      if (onQuizSubmitted) onQuizSubmitted();
+    } catch (error) {
+      console.error("Error submitting quiz:", error);
+      alert("حدث خطأ أثناء إرسال الإجابات، حاول مرة أخرى.");
+    }
   };
 
-  if (!quiz || !questions.length) return <div>Loading quiz...</div>;
+  if (loading) return <div>Loading quiz...</div>;
+  if (!quiz || !questions.length) return <div>No quiz available.</div>;
 
   return (
     <div className="quiz-viewer mt-3">
@@ -94,12 +112,18 @@ const QuizViewer = ({ lessonId }) => {
       ))}
 
       {!submitted ? (
-        <button className="btn btn-outline-primary" onClick={handleSubmit}>
+        <button
+          className="btn btn-outline-primary"
+          onClick={handleSubmit}
+          disabled={Object.keys(selectedAnswers).length !== questions.length}
+        >
           Submit Quiz
         </button>
       ) : (
         <div className="alert alert-success mt-3">
           Your Score: <strong>{score}</strong>
+          <br />
+          <small className="text-muted">You have already attempted this quiz.</small>
         </div>
       )}
     </div>

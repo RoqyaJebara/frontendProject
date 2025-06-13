@@ -3,7 +3,7 @@ export const About = () => {
     <div className="container my-5">
       <div className="row justify-content-center">
         <div className="col-lg-10 about-section">
-          <h2 className="fw-bold text-primary mb-4">About LMS</h2>
+          <h2 className="fw-bold text-info mb-4">About LMS</h2>
           <p className="lead">
             Our Learning Management System (LMS) is dedicated to making quality
             education accessible, flexible, and personalized for everyone.
@@ -22,7 +22,7 @@ export const About = () => {
                 alt="Classes"
               />
               <div>
-                <h6 className="fw-bold text-primary">Interactive Courses</h6>
+                <h6 className="fw-bold text-info">Interactive Courses</h6>
                 <p className="small">
                   Explore diverse subjects with rich content and practical
                   tasks.
@@ -36,7 +36,7 @@ export const About = () => {
                 alt="Students"
               />
               <div>
-                <h6 className="fw-bold text-primary">
+                <h6 className="fw-bold text-info">
                   Student-Centered Design
                 </h6>
                 <p className="small">
@@ -53,7 +53,7 @@ export const About = () => {
               />
 
               <div>
-                <h6 className="fw-bold text-primary">Secure & Reliable</h6>
+                <h6 className="fw-bold text-info">Secure & Reliable</h6>
                 <p className="small">
                   Your data and learning progress are safe with our secure
                   system.

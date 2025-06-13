@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import InstructorSidebar from "../Components/InstructorSidebar";
+import InstructorAnalytics from "../Components/InstructorAnalytics";
 
 export const InstructorDashboard = () => {
-  // State declarations at the top (consistent order)
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState("courses");
@@ -13,10 +14,10 @@ export const InstructorDashboard = () => {
 
   const user = JSON.parse(sessionStorage.getItem("user"));
   const instructorId = user?.id;
+
   useEffect(() => {
     const fetchInstructorDetails = async () => {
       if (!instructorId) return;
-
       try {
         const response = await fetch(
           `http://localhost:5000/users/${instructorId}`
@@ -29,17 +30,14 @@ export const InstructorDashboard = () => {
         setInstructorName("Instructor");
       }
     };
-
     fetchInstructorDetails();
   }, [instructorId]);
-  // Fetch enrollments (students data)
+
   useEffect(() => {
     const fetchEnrollments = async () => {
       try {
         const response = await fetch("http://localhost:5000/enrollments");
-        if (!response.ok) {
-          throw new Error("Failed to fetch enrollments");
-        }
+        if (!response.ok) throw new Error("Failed to fetch enrollments");
         const data = await response.json();
 
         const studentMap = {};
@@ -51,7 +49,6 @@ export const InstructorDashboard = () => {
               enrolledCourses: [],
             };
           }
-
           studentMap[enrollment.user_id].enrolledCourses.push({
             courseId: enrollment.course_id,
             courseTitle: enrollment.course_title,
@@ -66,11 +63,9 @@ export const InstructorDashboard = () => {
         setLoading(false);
       }
     };
-
     fetchEnrollments();
   }, []);
 
-  // Fetch courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -84,15 +79,27 @@ export const InstructorDashboard = () => {
         setError(error.message);
       }
     };
-
     if (instructorId) {
       fetchCourses();
     }
   }, [instructorId]);
 
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/submissions");
+        if (!response.ok) throw new Error("Failed to fetch submissions");
+        const data = await response.json();
+        setSubmissions(data);
+      } catch (err) {
+        console.error("Error fetching submissions:", err.message);
+      }
+    };
+    fetchSubmissions();
+  }, []);
+
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this course?")) return;
-
     try {
       const response = await fetch(`http://localhost:5000/courses/${id}`, {
         method: "DELETE",
@@ -104,9 +111,36 @@ export const InstructorDashboard = () => {
     }
   };
 
+  const handleSubmissionChange = (id, field, value) => {
+    setSubmissions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const saveSubmissionUpdate = async (submission) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/assignments/${submission.id}/grade`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            grade: submission.grade,
+            feedback: submission.feedback,
+          }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to update submission");
+      alert("Updated successfully");
+    } catch (err) {
+      alert("Error updating submission: " + err.message);
+    }
+  };
+
   const courseMap = Object.fromEntries(
     courses.map((course) => [course.id, course.title])
   );
+
   const getCourseTitle = (id) => courseMap[id] || "Unknown Course";
 
   if (loading) return <div>Loading...</div>;
@@ -123,6 +157,27 @@ export const InstructorDashboard = () => {
         <h1 className="fw-bold mb-4 text-center" style={{ color: "#18547a" }}>
           👨‍🏫 {instructorName}'s Dashboard
         </h1>
+
+        <div className="mb-3 text-center">
+          <button
+            onClick={() => setActiveSection("courses")}
+            className="btn btn-outline-primary m-2"
+          >
+            📚 Courses
+          </button>
+          <button
+            onClick={() => setActiveSection("students")}
+            className="btn btn-outline-success m-2"
+          >
+            👨‍🎓 Students
+          </button>
+          <button
+            onClick={() => setActiveSection("submissions")}
+            className="btn btn-outline-secondary m-2"
+          >
+            📩 Submissions
+          </button>
+        </div>
 
         {activeSection === "courses" && (
           <>
@@ -210,21 +265,122 @@ export const InstructorDashboard = () => {
 
         {activeSection === "students" && (
           <section>
-            <h4>👨‍🎓 Student Progress</h4>
-            {students.map((student) => (
-              <div key={student.id} className="mb-4">
-                <h5>{student.name}</h5>
-                <ul className="list-group">
-                  {student.enrolledCourses.map((enrolled) => (
-                    <li key={enrolled.courseId} className="list-group-item">
-                      {enrolled.courseTitle} - {enrolled.progress}% complete
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <h4 className="mb-4">👨‍🎓 Student Progress</h4>
+            <div className="row">
+              {students.map((student) => (
+                <div key={student.id} className="col-md-6 col-lg-4 mb-4">
+                  <div className="card h-100 shadow-sm border-0">
+                    <div className="card-body">
+                      <h5 className="card-title fw-bold text-primary">
+                        {student.name}
+                      </h5>
+                      <ul className="list-group list-group-flush mt-3">
+                        {student.enrolledCourses.map((enrolled) => (
+                          <li
+                            key={enrolled.courseId}
+                            className="list-group-item d-flex justify-content-between align-items-center"
+                          >
+                            <span>{enrolled.courseTitle}</span>
+                            <span className="badge bg-success rounded-pill">
+                              {enrolled.progress}%
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
         )}
+
+        {activeSection === "submissions" && (
+          <section>
+            <h4 className="mb-4">📩 Assignment Submissions</h4>
+            <div className="table-responsive">
+              <table className="table table-striped table-bordered">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Section</th>
+                    <th>Assignment</th>
+                    <th>Content</th>
+                    <th>File</th>
+                    <th>Grade</th>
+                    <th>Feedback</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((submission) => (
+                    <tr key={submission.id}>
+                      <td>{submission.student_name}</td>
+                      <td>{submission.course_title}</td>
+                      <td>{submission.lesson_name}</td>
+                      <td>{submission.lesson_content}</td>
+                      
+                      <td>
+                        {submission.submission_url && (
+                          <a
+                            href={`http://localhost:5000/uploads/${encodeURIComponent(
+                              submission.submission_url
+                            )}`}
+                            download
+                            rel="noopener noreferrer"
+                          >
+                            Download
+                          </a>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={submission.grade || ""}
+                          className="form-control"
+                          onChange={(e) =>
+                            handleSubmissionChange(
+                              submission.id,
+                              "grade",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={submission.feedback || ""}
+                          className="form-control"
+                          onChange={(e) =>
+                            handleSubmissionChange(
+                              submission.id,
+                              "feedback",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => saveSubmissionUpdate(submission)}
+                        >
+                          Save
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+        {activeSection === "analytics" && (
+  <section>
+    <InstructorAnalytics courses={courses} students={students} role='instructor' />
+  </section>
+)}
       </main>
     </div>
   );

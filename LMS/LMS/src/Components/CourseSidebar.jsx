@@ -4,7 +4,11 @@ const CourseSidebar = ({ modules, lessons, scrollToSection, onModuleSelect, acti
   return (
     <div
       className="bg-light p-3"
-      style={{ width: "250px", borderRight: "1px solid #ddd", height: "100vh", overflowY: "auto" }}
+      style={{ width: "250px",   
+         // fixed width
+        minWidth: "220px", // prevents shrinking
+        minHeight: "100vh",
+       borderRight: "1px solid #ddd", height: "100vh", overflowY: "auto" }}
     >
       <h5 className="fw-bold mb-3">
         <FaPuzzlePiece className="me-2" /> Modules

@@ -8,6 +8,7 @@ export const CourseViewer = () => {
   const userId = location.state?.userId;
   const { courseId } = useParams();
 
+  const [quizAttempts, setQuizAttempts] = useState({});
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [lessonsByModule, setLessonsByModule] = useState({});
@@ -18,6 +19,7 @@ export const CourseViewer = () => {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState("idle");
 
+  // تحميل بيانات الدورة والوحدات والدروس
   useEffect(() => {
     const fetchCourseData = async () => {
       setLoading(true);
@@ -40,7 +42,6 @@ export const CourseViewer = () => {
             (a, b) => a.order - b.order
           );
         }
-
         setLessonsByModule(lessonsData);
 
         if (sortedModules.length > 0) setSelectedModuleId(sortedModules[0].id);
@@ -54,6 +55,7 @@ export const CourseViewer = () => {
     fetchCourseData();
   }, [courseId]);
 
+  // تحميل بيانات التقدم للمستخدم في الدورة
   useEffect(() => {
     if (!userId || !courseId || Object.keys(lessonsByModule).length === 0)
       return;
@@ -82,7 +84,6 @@ export const CourseViewer = () => {
             count++;
           }
         }
-
         setCompletedLessons(newCompleted);
       } catch (error) {
         console.error("Error loading progress:", error.message);
@@ -92,11 +93,35 @@ export const CourseViewer = () => {
     fetchProgressData();
   }, [userId, courseId, lessonsByModule]);
 
+  // تحميل بيانات محاولات الكويز للمستخدم
+  useEffect(() => {
+    const fetchQuizAttempts = async () => {
+      if (!userId || !courseId) return;
+
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/quizzes/attempts/${userId}/${courseId}`
+        );
+        const attemptMap = {};
+        res.data.forEach((item) => {
+          attemptMap[item.lesson_id] = item.attempted;
+        });
+        setQuizAttempts(attemptMap);
+      } catch (err) {
+        console.error("Error fetching quiz attempts:", err.message);
+      }
+    };
+
+    fetchQuizAttempts();
+  }, [userId, courseId]);
+
+  // هل تم إكمال كل دروس الوحدة؟
   const isModuleCompleted = (moduleId) => {
     const lessons = lessonsByModule[moduleId] || [];
     return lessons.every((lesson) => completedLessons[lesson.id]);
   };
 
+  // هل الوحدة متاحة حسب تقدم المستخدم؟
   const isModuleAccessible = (module, index) => {
     if (index === 0) return true;
     for (let i = 0; i < index; i++) {
@@ -105,6 +130,7 @@ export const CourseViewer = () => {
     return true;
   };
 
+  // تحديث نسبة التقدم
   const calculateProgress = (completed) => {
     const total = Object.values(lessonsByModule).reduce(
       (sum, lessons) => sum + lessons.length,
@@ -114,6 +140,7 @@ export const CourseViewer = () => {
     setProgress(total ? Math.round((done / total) * 100) : 0);
   };
 
+  // تبديل حالة إكمال الدرس (مع التحقق من إكمال الدرس السابق)
   const handleLessonToggle = (lessonId, moduleId, index) => {
     const lessons = lessonsByModule[moduleId];
     if (index > 0 && !completedLessons[lessons[index - 1].id]) {
@@ -130,6 +157,7 @@ export const CourseViewer = () => {
     calculateProgress(updated);
   };
 
+  // حفظ التقدم إلى الخادم
   const saveProgress = async () => {
     if (!userId || !courseId) return;
     setSaveStatus("saving");
@@ -212,6 +240,7 @@ export const CourseViewer = () => {
           <button
             className="btn btn-sm btn-primary mt-2"
             onClick={saveProgress}
+            disabled={saveStatus === "saving"}
           >
             {saveStatus === "saving" ? "Saving..." : "Save Progress"}
           </button>
@@ -220,6 +249,11 @@ export const CourseViewer = () => {
           )}
           {saveStatus === "error" && (
             <div className="text-danger mt-2">Error saving progress.</div>
+          )}
+          {progress === 100 && (
+            <div className="alert alert-success mt-3">
+              🎉 Congratulations! You have completed this course.
+            </div>
           )}
         </div>
 
@@ -242,55 +276,49 @@ export const CourseViewer = () => {
                   >
                     <div className="d-flex justify-content-between align-items-center">
                       <h5 className="mb-0">{lesson.title}</h5>
-                      {isPreviousLessonCompleted ? (
-                        <button
-                          className={`btn btn-sm ${
-                            isLessonCompleted
-                              ? "btn-success"
-                              : "btn-outline-primary"
-                          }`}
-                          onClick={() =>
-                            handleLessonToggle(
-                              lesson.id,
-                              selectedModuleId,
-                              index
-                            )
-                          }
-                        >
-                          {isLessonCompleted ? "Completed" : "Mark Complete"}
-                        </button>
-                      ) : (
-                        <button className="btn btn-sm btn-secondary" disabled>
-                          Complete previous lesson first
-                        </button>
-                      )}
+                      <input
+                        type="checkbox"
+                        checked={isLessonCompleted}
+                        disabled={!isPreviousLessonCompleted}
+                        onChange={() =>
+                          handleLessonToggle(lesson.id, selectedModuleId, index)
+                        }
+                      />
                     </div>
 
-                    {isPreviousLessonCompleted && (
-                      <>
-                        {lesson.content_type === "text" && (
-                          <div
-                            className="mt-2"
-                            dangerouslySetInnerHTML={{ __html: lesson.content }}
-                          />
-                        )}
+                    {/* محتوى الدرس حسب النوع */}
+                    {lesson.content_type === "text" && (
+                      <div
+                        className="mt-3"
+                        dangerouslySetInnerHTML={{ __html: lesson.content }}
+                      />
+                    )}
 
-                        {lesson.content_type === "video" && (
-                          <div className="ratio ratio-16x9 mt-3">
+                    {lesson.content_type === "video" && (
                             <iframe
                               src={lesson.content}
                               title={lesson.title}
                               allowFullScreen
                             ></iframe>
-                          </div>
-                        )}
+                    )}
 
-                        {lesson.content_type === "quiz" && (
-                          <div className="mt-3">
-                            <QuizViewer lessonId={lesson.id} />
-                          </div>
+                    {lesson.content_type === "quiz" && (
+                      <>
+                        {quizAttempts[lesson.id] ? (
+                          <p className="text-success mt-3">
+                            You have already attempted this quiz.
+                          </p>
+                        ) : (
+                          <QuizViewer
+                            lessonId={lesson.id}
+                            courseId={courseId}
+                            userId={userId}
+                          />
                         )}
-                        {lesson.content_type === "assignment" && (
+                      </>
+                    )}
+
+                    {lesson.content_type === "assignment" && (
                           <div className="mt-3 p-3 border rounded bg-warning-subtle">
                             <h6 className="mb-2 text-dark">
                               📎 Assignment Instructions
@@ -349,8 +377,6 @@ export const CourseViewer = () => {
                             </form>
                           </div>
                         )}
-                      </>
-                    )}
                   </div>
                 );
               }
@@ -361,3 +387,55 @@ export const CourseViewer = () => {
     </div>
   );
 };
+
+// مكون بسيط لتحميل الواجبات
+const AssignmentUploader = ({ lessonId, userId }) => {
+  const [file, setFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState("idle");
+
+  const handleFileChange = (e) => setFile(e.target.files[0]);
+
+  const handleUpload = async () => {
+    if (!file) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("lessonId", lessonId);
+    formData.append("userId", userId);
+
+    try {
+      setUploadStatus("uploading");
+      await axios.post("http://localhost:5000/assignments/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setUploadStatus("uploaded");
+    } catch (error) {
+      console.error("Upload error:", error);
+      setUploadStatus("error");
+    }
+  };
+
+  return (
+    <div className="mt-3">
+      <input type="file" onChange={handleFileChange} />
+      <button
+        className="btn btn-sm btn-primary ms-2"
+        onClick={handleUpload}
+        disabled={uploadStatus === "uploading"}
+      >
+        {uploadStatus === "uploading" ? "Uploading..." : "Upload Assignment"}
+      </button>
+      {uploadStatus === "uploaded" && (
+        <div className="text-success mt-2">Uploaded successfully!</div>
+      )}
+      {uploadStatus === "error" && (
+        <div className="text-danger mt-2">Upload failed. Try again.</div>
+      )}
+    </div>
+  );
+};
+
+export default CourseViewer;
