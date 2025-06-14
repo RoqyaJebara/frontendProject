@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import InstructorSidebar from "../Components/InstructorSidebar";
 import InstructorAnalytics from "../Components/InstructorAnalytics";
+import html2pdf from "html2pdf.js";
 
 export const InstructorDashboard = () => {
   const [students, setStudents] = useState([]);
@@ -14,6 +15,21 @@ export const InstructorDashboard = () => {
 
   const user = JSON.parse(sessionStorage.getItem("user"));
   const instructorId = user?.id;
+  const analyticsRef = useRef(null);
+
+  const handlePrint = () => {
+    if (!analyticsRef.current) return;
+    html2pdf()
+      .from(analyticsRef.current)
+      .set({
+        margin: 1,
+        filename: "Instructor_Analytics_Report.pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      })
+      .save();
+  };
 
   useEffect(() => {
     const fetchInstructorDetails = async () => {
@@ -26,7 +42,6 @@ export const InstructorDashboard = () => {
         const data = await response.json();
         setInstructorName(data.name || `${data.first_name} ${data.last_name}`);
       } catch (error) {
-        console.error("Error fetching instructor details:", error);
         setInstructorName("Instructor");
       }
     };
@@ -140,7 +155,6 @@ export const InstructorDashboard = () => {
   const courseMap = Object.fromEntries(
     courses.map((course) => [course.id, course.title])
   );
-
   const getCourseTitle = (id) => courseMap[id] || "Unknown Course";
 
   if (loading) return <div>Loading...</div>;
@@ -177,8 +191,15 @@ export const InstructorDashboard = () => {
           >
             📩 Submissions
           </button>
+          <button
+            onClick={() => setActiveSection("analytics")}
+            className="btn btn-outline-dark m-2"
+          >
+            📊 Analytics
+          </button>
         </div>
 
+        {/* Courses Section */}
         {activeSection === "courses" && (
           <>
             <section className="mb-4">
@@ -263,6 +284,7 @@ export const InstructorDashboard = () => {
           </>
         )}
 
+        {/* Students Section */}
         {activeSection === "students" && (
           <section>
             <h4 className="mb-4">👨‍🎓 Student Progress</h4>
@@ -295,6 +317,7 @@ export const InstructorDashboard = () => {
           </section>
         )}
 
+        {/* Submissions Section */}
         {activeSection === "submissions" && (
           <section>
             <h4 className="mb-4">📩 Assignment Submissions</h4>
@@ -319,7 +342,6 @@ export const InstructorDashboard = () => {
                       <td>{submission.course_title}</td>
                       <td>{submission.lesson_name}</td>
                       <td>{submission.lesson_content}</td>
-                      
                       <td>
                         {submission.submission_url && (
                           <a
@@ -376,11 +398,42 @@ export const InstructorDashboard = () => {
             </div>
           </section>
         )}
-        {activeSection === "analytics" && (
-  <section>
-    <InstructorAnalytics courses={courses} students={students} role='instructor' />
-  </section>
+
+        {/* Analytics Section with PDF Export */}
+    
+         {activeSection === "analytics" && (
+  <div>
+    <div className="d-flex justify-content-between align-items-center mb-3">
+      <h3 className="m-0">📊 Instructor Analytics</h3>
+      <div>
+        <button
+          className="btn btn-outline-primary me-2"
+          onClick={() => window.print()}
+        >
+          🖨️ Print
+        </button>
+        <button
+          className="btn btn-outline-primary"
+          onClick={handlePrint}
+        >
+          📄 Export PDF
+        </button>
+      </div>
+    </div>
+    <div ref={analyticsRef}>
+      <InstructorAnalytics
+        courses={courses}
+        students={students}
+        role="instructor"
+      />
+    </div>
+  </div>
 )}
+
+            
+            
+        
+        
       </main>
     </div>
   );
