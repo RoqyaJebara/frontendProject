@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Doughnut, Line } from "react-chartjs-2";
 import 'chart.js/auto';
+import html2pdf from "html2pdf.js";
 
 const InstructorAnalytics = ({ role }) => {
   const [studentCount, setStudentCount] = useState(0);
   const [progressData, setProgressData] = useState([]);
   const [courseChartData, setCourseChartData] = useState({ labels: [], data: [] });
+
+  const analyticsRef = useRef(null); // لإشارة إلى الجزء الذي سيتم تصديره
 
   useEffect(() => {
     axios.get("http://localhost:5000/analytics/summary")
@@ -63,58 +66,62 @@ const InstructorAnalytics = ({ role }) => {
     ],
   };
 
+  const handleDownloadPDF = () => {
+    const element = analyticsRef.current;
+    const options = {
+      filename: "Instructor_Analytics_Report.pdf",
+      margin: 0.5,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+    };
+    html2pdf().set(options).from(element).save();
+  };
+
   return (
-    <div className="admin-analytics" style={{ padding: '1rem' }}>
-      {/* Print Button */}
-      {role !== "admin" && (
-        <button
-          onClick={() => window.print()}
-          className="btn btn-warning mb-3 no-print"
-          style={{ fontWeight: '600', letterSpacing: '0.05em' }}
-          title="Print Report"
-        >
-          🖨️ Print Report
-        </button>
-      )}
+    <div>
+      {/* Buttons (not included in print) */}
+      {/* {role !== "admin" && (
+        // <div className="mb-3 no-print d-flex justify-content-end gap-2">
+        //   <button className="btn btn-outline-primary" onClick={handleDownloadPDF}>
+        //     📄 Report PDF
+        //   </button>
+        //   <button className="btn btn-outline-secondary" onClick={() => window.print()}>
+        //     🖨️ Print
+        //   </button>
+        // </div>
+      )} */}
 
-      <h5 className="text-center mb-4" style={{ color: '#18547a' }}>Student Analytics</h5>
+      {/* Printable Area */}
+      <div className="admin-analytics" ref={analyticsRef} style={{ padding: '1rem' }}>
+        <h5 className="text-center mb-4" style={{ color: '#205e86' }}>Student Analytics</h5>
 
-      <div className="stats-container d-flex justify-content-center mb-3">
-        <div className="stat-card text-center p-3 border rounded" style={{ width: '150px', backgroundColor: '#f8f9fa' }}>
-          <h4 className="mb-1 text-primary">{studentCount}</h4>
-          <small>Total Students</small>
-        </div>
-      </div>
-
-      <div className="charts-container d-flex flex-wrap justify-content-center gap-4">
-        <div className="chart-card p-3 border rounded" style={{ width: '400px', backgroundColor: '#ffffff' }}>
-          <h6 className="text-center mb-3">Students per Course</h6>
-          <div style={{ height: '300px' }}>
-            <Line data={lineChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+        <div className="stats-container d-flex justify-content-center mb-3">
+          <div className="stat-card text-center p-3 border rounded" style={{ width: '150px', backgroundColor: '#f8f9fa' }}>
+            <h4 className="mb-1 text-primary">{studentCount}</h4>
+            <small>Total Students</small>
           </div>
         </div>
 
-        <div className="chart-card p-3 border rounded" style={{ width: '400px', backgroundColor: '#ffffff' }}>
-          <h6 className="text-center mb-3">Student Progress Status</h6>
-          <div style={{ height: '300px' }}>
-            <Doughnut data={doughnutChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+        <div className="charts-container d-flex flex-wrap justify-content-center gap-4">
+          <div className="chart-card p-3 border rounded" style={{ width: '400px', backgroundColor: '#ffffff' }}>
+            <h6 className="text-center mb-3">Students per Course</h6>
+            <div style={{ height: '300px' }}>
+              <Line data={lineChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+            </div>
+          </div>
+
+          <div className="chart-card p-3 border rounded" style={{ width: '400px', backgroundColor: '#ffffff' }}>
+            <h6 className="text-center mb-3">Student Progress Status</h6>
+            <div style={{ height: '300px' }}>
+              <Doughnut data={doughnutChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Print Styles */}
-      <style>
-        {`
-          @media print {
-            .no-print {
-              display: none !important;
-            }
-            body {
-              -webkit-print-color-adjust: exact;
-            }
-          }
-        `}
-      </style>
+   
     </div>
   );
 };

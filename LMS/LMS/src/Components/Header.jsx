@@ -1,21 +1,30 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 export const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const user = JSON.parse(sessionStorage.getItem("user"));
+
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("user");
+    navigate("/login");
+  };
 
   return (
     <header>
       <nav className="navbar navbar-expand-lg shadow-sm">
-        <div className="container-fluid "  >
-          <Link className="navbar-brand" to="/" aria-label="LMS Home">
+        <div className="container-fluid">
+          <Link className="navbar-brand d-flex align-items-center" to="/" aria-label="LMS Home">
             <img src={logo} width="90" alt="LMS Logo" />
             <span className="fw-bold color fs-4">Learning</span>
             <span className="fw-bold color fs-4"> Management </span>
             <span className="fw-bold color fs-4">System</span>
           </Link>
+
           <button
             className="navbar-toggler"
             type="button"
@@ -24,6 +33,7 @@ export const Header = () => {
           >
             <span className="navbar-toggler-icon"></span>
           </button>
+
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto align-items-lg-center">
               <li className="nav-item color">
@@ -34,7 +44,7 @@ export const Header = () => {
                   Home
                 </Link>
               </li>
-              <li className="nav-item color" >
+              <li className="nav-item color">
                 <Link
                   className={`nav-link fs-5 fw-bold ${isActive("/courses") ? "text-info" : ""}`}
                   to="/courses"
@@ -58,15 +68,23 @@ export const Header = () => {
                   About
                 </Link>
               </li>
+
+              {/* Conditional Login/Logout */}
               <li className="nav-item me-2">
-                <Link
-                  to="/login"
-                  className={`btn fw-bold text-white ${
-                    isActive("/login") ? "btn-dark" : "btn-info"
-                  }`}
-                >
-                  Login
-                </Link>
+                {user ? (
+                  <button onClick={handleLogout} className="btn btn-info fw-bold text-white">
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    className={`btn fw-bold text-white ${
+                      isActive("/login") ? "btn-dark" : "btn-info"
+                    }`}
+                  >
+                    Login
+                  </Link>
+                )}
               </li>
             </ul>
           </div>

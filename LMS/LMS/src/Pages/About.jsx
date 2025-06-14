@@ -1,3 +1,6 @@
+// About.jsx
+import React from "react";
+
 export const About = () => {
   return (
     <div className="container my-5">
@@ -36,9 +39,7 @@ export const About = () => {
                 alt="Students"
               />
               <div>
-                <h6 className="fw-bold text-info">
-                  Student-Centered Design
-                </h6>
+                <h6 className="fw-bold text-info">Student-Centered Design</h6>
                 <p className="small">
                   Focus on learner outcomes through engaging and adaptive tools.
                 </p>
@@ -49,9 +50,7 @@ export const About = () => {
                 src="https://img.icons8.com/ios-filled/100/000000/security-checked.png"
                 className="feature-icon"
                 alt="Security"
-                width="100"
               />
-
               <div>
                 <h6 className="fw-bold text-info">Secure & Reliable</h6>
                 <p className="small">

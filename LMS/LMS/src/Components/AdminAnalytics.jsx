@@ -55,7 +55,6 @@ const AdminAnalytics = () => {
     0
   );
 
-  // Chart data configurations
   const courseData = {
     labels: coursesWithEnrollments.map(
       (course) => `${course.title} (${course.instructor_name})`
@@ -94,7 +93,7 @@ const AdminAnalytics = () => {
       {
         label: "Progress (%)",
         data: filteredProgress.map((item) => Math.round(item.progress)),
-        backgroundColor: "#16a34a", // Green for good progress
+        backgroundColor: "#16a34a",
       },
     ],
   };
@@ -117,24 +116,45 @@ const AdminAnalytics = () => {
     },
   };
 
+  // Group courses by instructorName for table
+  const coursesByInstructor = instructors.names.map((instructorName) => {
+    return {
+      instructorName,
+      courses: courses.filter((c) => c.instructor_name === instructorName),
+    };
+  });
+
   return (
     <div className="container mt-4">
-      <button
+      {/* <button
         className="btn btn-warning mb-3 no-print"
         style={{ fontWeight: "600", letterSpacing: "0.05em" }}
         onClick={() => window.print()}
       >
         🖨️ Print Report
-      </button>
+      </button> */}
 
-      <h3 style={{ color: "#f97316", fontWeight: "bold", marginBottom: "1rem" }}>
+      <h3 style={{ color: "#205e86", marginBottom: "1rem" }}>
         📊 Course Enrollment Analytics
       </h3>
 
-      <Bar data={courseData} options={{ ...commonChartOptions, plugins: { ...commonChartOptions.plugins, title: { ...commonChartOptions.plugins.title, text: "Course Enrollment Analytics" } } }} height={100} />
+      <Bar
+        data={courseData}
+        options={{
+          ...commonChartOptions,
+          plugins: {
+            ...commonChartOptions.plugins,
+            title: {
+              ...commonChartOptions.plugins.title,
+              text: "Course Enrollment Analytics",
+            },
+          },
+        }}
+        height={100}
+      />
 
       <div className="mt-4">
-        <h5 style={{ color: "#f97316", fontWeight: "bold", marginBottom: "0.75rem" }}>
+        <h5 style={{ color: "#205e86", marginBottom: "0.75rem" }}>
           🚫 Courses Without Any Enrollment:
         </h5>
         {coursesWithoutEnrollments.length > 0 ? (
@@ -151,15 +171,11 @@ const AdminAnalytics = () => {
       </div>
 
       <div className="mt-4">
-        <h5 style={{ color: "#f97316", fontWeight: "bold" }}>
-          📦 Total Enrollments: {totalEnrollments}
-        </h5>
+        <h5 style={{ color: "#205e86" }}>📦 Total Enrollments: {totalEnrollments}</h5>
       </div>
 
       <div className="mt-5">
-        <h4 style={{ color: "#f97316", fontWeight: "bold", marginBottom: "1rem" }}>
-          👤 Users Summary
-        </h4>
+        <h4 style={{ color: "#205e86", marginBottom: "1rem" }}>👤 Users Summary</h4>
 
         <Bar
           data={usersData}
@@ -178,44 +194,108 @@ const AdminAnalytics = () => {
           height={100}
         />
 
-        <div className="row mt-4">
-          <div className="col-md-6">
-            <h5 style={{ color: "#18547a", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              📘 Students ({students.count})
-            </h5>
-            <div className="d-flex flex-wrap gap-2">
-              {students.names.map((name, idx) => (
-                <span
-                  key={idx}
-                  className="badge rounded-pill bg-info text-white px-3 py-2"
-                  style={{ fontSize: "0.9rem" }}
-                >
-                  {name}
-                </span>
-              ))}
+        {/* جدول المدرسين */}
+        <div className="mt-4">
+          <h5 style={{ color: "#18547a", marginBottom: "0.5rem" }}>
+            👨‍🏫 Instructors ({instructors.count})
+          </h5>
+          {instructors.names.length === 0 ? (
+            <p>No instructors found.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table className="table table-bordered table-hover table-striped">
+                <thead className="table-primary">
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Courses Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {instructors.names.map((name, idx) => {
+                    const courseCount = courses.filter(
+                      (c) => c.instructor_name === name
+                    ).length;
+                    return (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td>{name}</td>
+                        <td>{courseCount}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </div>
-          <div className="col-md-6">
-            <h5 style={{ color: "#18547a", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              📗 Instructors ({instructors.count})
-            </h5>
-            <div className="d-flex flex-wrap gap-2">
-              {instructors.names.map((name, idx) => (
-                <span
-                  key={idx}
-                  className="badge rounded-pill bg-info text-white px-3 py-2"
-                  style={{ fontSize: "0.9rem" }}
-                >
-                  {name}
-                </span>
-              ))}
+          )}
+        </div>
+
+        {/* جدول الدورات */}
+        <div className="mt-5">
+          <h5 style={{ color: "#18547a", marginBottom: "0.5rem" }}>
+            📚 Courses ({courses.length})
+          </h5>
+          {courses.length === 0 ? (
+            <p>No courses found.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table className="table table-bordered table-hover table-striped">
+                <thead className="table-primary">
+                  <tr>
+                    <th>#</th>
+                    <th>Course Title</th>
+                    <th>Instructor</th>
+                    <th>Enrollments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {courses.map((course, idx) => (
+                    <tr key={course.course_id || idx}>
+                      <td>{idx + 1}</td>
+                      <td>{course.title}</td>
+                      <td>{course.instructor_name}</td>
+                      <td>{course.enrollments_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
+      {/* قسم التفاصيل التفصيلي */}
       <div className="mt-5">
-        <h4 style={{ color: "#f97316", fontWeight: "bold", marginBottom: "1rem" }}>
+        <h4 style={{ color: "#205e86", marginBottom: "1rem" }}>
+          👩‍🏫 Instructors & Their Courses
+        </h4>
+
+        {coursesByInstructor.length === 0 ? (
+          <p>No instructors found.</p>
+        ) : (
+          coursesByInstructor.map(({ instructorName, courses }) => (
+            <div key={instructorName} className="mb-4">
+              <h5 style={{ color: "#18547a" }}>{instructorName}</h5>
+              {courses.length === 0 ? (
+                <p>
+                  <em>No courses assigned.</em>
+                </p>
+              ) : (
+                <ul className="list-group">
+                  {courses.map((course) => (
+                    <li key={course.course_id} className="list-group-item">
+                      {course.title} - Enrollments: {course.enrollments_count}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="mt-5">
+        <h4 style={{ color: "#205e86", marginBottom: "1rem" }}>
           👥 All Students Enrollments & Progress
         </h4>
 
@@ -224,14 +304,17 @@ const AdminAnalytics = () => {
         ) : (
           <>
             <div style={{ overflowX: "auto" }}>
-              <table className="table table-bordered table-hover" style={{ minWidth: "700px" }}>
+              <table
+                className="table table-bordered table-hover"
+                style={{ minWidth: "700px" }}
+              >
                 <thead className="table-light">
                   <tr>
                     <th>Student Name</th>
                     <th>Course Title</th>
                     <th>Enrolled At</th>
                     <th>Progress (%)</th>
-                    <th>Completed At</th>
+                    {/* تم حذف عمود Completed At */}
                   </tr>
                 </thead>
                 <tbody>
@@ -241,7 +324,7 @@ const AdminAnalytics = () => {
                       <td>{item.course_title}</td>
                       <td>{new Date(item.enrolled_at).toLocaleDateString()}</td>
                       <td>{Math.round(item.progress)}%</td>
-                      <td>{item.completed_at ? new Date(item.completed_at).toLocaleDateString() : "—"}</td>
+                      {/* تم حذف بيانات Completed At */}
                     </tr>
                   ))}
                 </tbody>
@@ -249,12 +332,26 @@ const AdminAnalytics = () => {
             </div>
 
             <div className="mt-5">
-              <h4 style={{ color: "#f97316", fontWeight: "bold", marginBottom: "1rem" }}>
+              <h4 style={{ color: "#205e86", marginBottom: "1rem" }}>
                 📈 Students with Progress Greater than 50%
               </h4>
-              <div style={{ maxWidth: "100%", overflowX: "auto", paddingBottom: "1rem" }}>
-                <div style={{ width: `${Math.max(filteredProgress.length * 150, 600)}px` }}>
-                  <Bar data={studentProgressChart} options={commonChartOptions} height={100} />
+              <div
+                style={{
+                  maxWidth: "100%",
+                  overflowX: "auto",
+                  paddingBottom: "1rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.max(filteredProgress.length * 150, 600)}px`,
+                  }}
+                >
+                  <Bar
+                    data={studentProgressChart}
+                    options={commonChartOptions}
+                    height={100}
+                  />
                 </div>
               </div>
             </div>
@@ -262,7 +359,7 @@ const AdminAnalytics = () => {
         )}
 
         <section className="mt-5">
-          <InstructorAnalytics courses={courses} students={students}  role="admin" />
+          <InstructorAnalytics courses={courses} students={students} role="admin" />
         </section>
       </div>
     </div>

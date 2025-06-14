@@ -116,3 +116,15 @@ h1, h2, h3 {
       page-break-inside: avoid;
     }
   }
+  .feature-icon {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  margin-right: 15px;
+}
+.icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
