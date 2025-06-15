@@ -2,17 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 export const CourseUpdate = () => {
-const { id } = useParams(); 
+  const { id } = useParams();
 
-const navigate = useNavigate()
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const instructorIdFromLink = location.state?.instructorId || "";
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    instructor_id: "",
+    instructor_id: instructorIdFromLink,
     category_id: "",
     price: "",
-    is_published:"",
+    is_published: "",
     is_approved: "false",
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -21,38 +24,37 @@ const navigate = useNavigate()
   const [instructors, setInstructors] = useState([]);
 
   // Fetch current course data + instructors + categories
- useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const [courseRes, catRes, instRes] = await Promise.all([
-        fetch(`http://localhost:5000/courses/${id}`),
-        fetch("http://localhost:5000/categories"),
-        fetch("http://localhost:5000/users/role/instructors"),
-      ]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [courseRes, catRes, instRes] = await Promise.all([
+          fetch(`http://localhost:5000/courses/${id}`),
+          fetch("http://localhost:5000/categories"),
+          fetch("http://localhost:5000/users/role/instructors"),
+        ]);
 
-      const courseData = await courseRes.json();
-      const categoriesData = await catRes.json();
-      const instructorsData = await instRes.json();
+        const courseData = await courseRes.json();
+        const categoriesData = await catRes.json();
+        const instructorsData = await instRes.json();
 
-      setFormData({
-        title: courseData.title,
-        description: courseData.description,
-        instructor_id: courseData.instructor_id,
-        category_id: courseData.category_id,
-        price: courseData.price,
-        is_published:` ${courseData.is_published}`,
-      });
-      // setPreview(`http://localhost:5000/uploads/${courseData.thumbnail_url}`);
-      setCategories(categoriesData);
-      setInstructors(instructorsData);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    }
-  };
+        setFormData({
+          title: courseData.title,
+          description: courseData.description,
+          instructor_id: courseData.instructor_id,
+          category_id: courseData.category_id,
+          price: courseData.price,
+          is_published: ` ${courseData.is_published}`,
+        });
+        // setPreview(`http://localhost:5000/uploads/${courseData.thumbnail_url}`);
+        setCategories(categoriesData);
+        setInstructors(instructorsData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
 
-  fetchData();
-}, [id]);
-
+    fetchData();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -127,20 +129,17 @@ const navigate = useNavigate()
 
         <div className="mb-2">
           <label className="form-label">Instructor</label>
-          <select
+
+          <input
+            type="text"
             name="instructor_id"
-            className="form-select"
-            value={formData.instructor_id}
-            onChange={handleChange}
-            required
-          >
-            <option value="">-- Select Instructor --</option>
-            {instructors.map((inst) => (
-              <option key={inst.id} value={inst.id}>
-                {inst.name}
-              </option>
-            ))}
-          </select>
+            className="form-control"
+            value={
+              instructors.find((inst) => inst.id === formData.instructor_id)
+                ?.name || ""
+            }
+            disabled
+          />
         </div>
 
         <div className="mb-2">
@@ -200,8 +199,6 @@ const navigate = useNavigate()
           />
           <label className="form-check-label">Published</label>
         </div>
-
-        
 
         <button type="submit" className="btn btn-info">
           Update Course

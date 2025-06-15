@@ -19,76 +19,60 @@ export const StudentDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleNavigate = (courseId) => {
-    navigate(`/student_course/${courseId}`, {
-      state: { userId },
-    });
+    navigate(`/student_course/${courseId}`, { state: { userId } });
   };
 
   useEffect(() => {
-    const fetchStudentDetails = async () => {
-      if (!userId) return;
-      try {
-        const response = await fetch(`http://localhost:5000/users/${userId}`);
-        const data = await response.json();
-        setStudentName(data.name || `${data.first_name} ${data.last_name}`);
-      } catch {
-        setStudentName("Student");
-      }
-    };
-    fetchStudentDetails();
+    if (!userId) return;
+    fetch(`http://localhost:5000/users/${userId}`)
+      .then((res) => res.json())
+      .then((data) =>
+        setStudentName(data.name || `${data.first_name} ${data.last_name}`)
+      )
+      .catch(() => setStudentName("Student"));
   }, [userId]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/categories");
-        const data = await res.json();
-        setCategories(data);
-      } catch {
-        setCategories([]);
-      }
-    };
-    fetchCategories();
+    fetch("http://localhost:5000/categories")
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        let url =
-          "http://localhost:5000/courses?is_published=true&is_approved=true";
-        if (activeCategory !== null) {
-          const activeCategoryId = parseInt(activeCategory);
-          url = `http://localhost:5000/courses/category/${activeCategoryId}`;
-        }
-        if (activeSection === "enrolledCourses") {
-          setAvailableCourses([]);
-          return;
-        }
-        const res = await fetch(url);
-        const data = await res.json();
-        setAvailableCourses(data);
-      } catch {
-        setAvailableCourses([]);
-      }
-    };
-    fetchCourses();
+    if (activeSection === "enrolledCourses") {
+      setAvailableCourses([]);
+      return;
+    }
+
+    let url =
+      "http://localhost:5000/courses?is_published=true&is_approved=true";
+    if (activeCategory !== null) {
+      const id = parseInt(activeCategory);
+      url = `http://localhost:5000/courses/category/${id}`;
+    }
+
+    fetch(url)
+      .then((res) => res.json())
+      .then(setAvailableCourses)
+      .catch(() => setAvailableCourses([]));
   }, [activeCategory, activeSection]);
 
   useEffect(() => {
-    if (!userId || (activeSection !== "enrolledCourses" && activeSection !== "allCourses")) {
+    if (
+      !userId ||
+      (activeSection !== "enrolledCourses" && activeSection !== "allCourses")
+    ) {
       setEnrolledCourses([]);
       return;
     }
-    const fetchEnrolled = async () => {
-      try {
-        const res = await fetch(`http://localhost:5000/enrollments/${userId}`);
-        const data = await res.json();
-        setEnrolledCourses(Array.isArray(data) ? data : data ? [data] : []);
-      } catch {
-        setEnrolledCourses([]);
-      }
-    };
-    fetchEnrolled();
+
+    fetch(`http://localhost:5000/enrollments/${userId}`)
+      .then((res) => res.json())
+      .then((data) =>
+        setEnrolledCourses(Array.isArray(data) ? data : data ? [data] : [])
+      )
+      .catch(() => setEnrolledCourses([]));
   }, [userId, activeSection]);
 
   const enroll = async (course) => {
@@ -143,16 +127,26 @@ export const StudentDashboard = () => {
       </h5>
       <div className="d-flex flex-wrap gap-2">
         <button
-          className={`btn btn-sm ${activeCategory === null ? "btn-info" : "btn-outline-info"}`}
-          onClick={() => setActiveCategory(null)}
+          className={`btn btn-sm ${
+            activeCategory === null ? "btn-info" : "btn-outline-info"
+          }`}
+          onClick={() => {
+            setActiveCategory(null);
+            setSearchTerm("");
+          }}
         >
           All
         </button>
         {categories.map((cat) => (
           <button
             key={cat.id}
-            className={`btn btn-sm ${activeCategory === cat.id ? "btn-info" : "btn-outline-info"}`}
-            onClick={() => setActiveCategory(cat.id)}
+            className={`btn btn-sm ${
+              activeCategory === cat.id ? "btn-info" : "btn-outline-info"
+            }`}
+            onClick={() => {
+              setActiveCategory(cat.id);
+              setSearchTerm("");
+            }}
           >
             {cat.name}
           </button>
@@ -161,23 +155,44 @@ export const StudentDashboard = () => {
     </div>
   );
 
+  const renderSearchBar = () => (
+    <div className="my-3">
+      <input
+        type="text"
+        className="form-control"
+        placeholder="Search courses by title..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
+  );
+
   const renderContent = () => {
+    const filteredCourses = (
+      activeSection === "enrolledCourses" ? enrolledCourses : availableCourses
+    ).filter((course) =>
+      course.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (activeSection === "enrolledCourses") {
       return (
         <>
           <h4 className="fw-bold mb-4" style={{ color: "#18547a" }}>
             Enrolled Courses
           </h4>
-          {enrolledCourses.length === 0 ? (
-            <p>No enrolled courses yet.</p>
+          {renderSearchBar()}
+          {filteredCourses.length === 0 ? (
+            <p>No enrolled courses found.</p>
           ) : (
             <div className="row row-cols-1 row-cols-md-2 g-4">
-              {enrolledCourses.map((course) => {
-                const category = categories.find((c) => c.id === course.category_id);
+              {filteredCourses.map((course) => {
+                const category = categories.find(
+                  (c) => c.id === course.category_id
+                );
                 return (
                   <div
-                    onClick={() => handleNavigate(course.course_id)}
                     key={course.enrollment_id}
+                    onClick={() => handleNavigate(course.course_id)}
                     style={{
                       color: "#f97316",
                       cursor: "pointer",
@@ -190,7 +205,9 @@ export const StudentDashboard = () => {
                       courseId={course.course_id}
                       course_category_id={course.category_id}
                       progress={course.progress}
-                      updateProgress={(amount) => updateProgress(course.course_id, amount)}
+                      updateProgress={(amount) =>
+                        updateProgress(course.course_id, amount)
+                      }
                       categoryName={category ? category.name : "Uncategorized"}
                     />
                   </div>
@@ -205,78 +222,80 @@ export const StudentDashboard = () => {
     return (
       <>
         {renderCategories()}
-
-        {/* ✅ Search bar added here */}
-        <div className="my-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search courses by title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
+        {renderSearchBar()}
         <h4 className="fw-bold mb-3" style={{ color: "#18547a" }}>
           {activeCategory
-            ? `Courses in "${categories.find((c) => c.id === activeCategory)?.name}"`
+            ? `Courses in "${
+                categories.find((c) => c.id === activeCategory)?.name
+              }"`
             : "All Available Courses"}
         </h4>
-        {availableCourses.length === 0 ? (
-          <p>No courses available.</p>
+        {filteredCourses.length === 0 ? (
+          <p>No courses found.</p>
         ) : (
           <div className="row row-cols-1 row-cols-md-3 g-4 mb-5">
-            {availableCourses
-              .filter((course) =>
-                course.title.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-              .map((course) => {
-                const isAlreadyEnrolled = enrolledCourses.some(
-                  (c) => c.course_id === course.id
-                );
-                return (
-                  <div key={course.id} className="col">
-                    <div className="card shadow-sm border-0">
-                      <img
-                        src={`http://localhost:5000/uploads/${encodeURIComponent(
-                          course.thumbnail_url
-                        )}`}
-                        className="card-img-top"
-                        width={50}
-                        height={200}
-                        alt={course.title}
-                      />
-                      <div className="card-body">
-                        <h5 className="card-title text-truncate">{course.title}</h5>
-                        <p className="card-text small">{course.description}</p>
-                        <p className="text-muted small">
-                          Category:{" "}
-                          {categories.find((c) => c.id === course.category_id)?.name ||
-                            "Uncategorized"}
-                        </p>
-                      </div>
-                      <div className="card-footer bg-white border-0">
-                        <button
-                          className="btn w-100 fw-bold"
-                          style={{
-                            backgroundColor: isAlreadyEnrolled ? "#ccc" : "#18547a",
-                            color: "#c7f6f4",
-                            cursor: isAlreadyEnrolled ? "not-allowed" : "pointer",
-                          }}
-                          onClick={() => !isAlreadyEnrolled && enroll(course)}
-                          disabled={isAlreadyEnrolled || enrollingCourseId === course.id}
-                        >
-                          {isAlreadyEnrolled
-                            ? "Enrolled"
-                            : enrollingCourseId === course.id
-                            ? "Enrolling..."
-                            : "Enroll"}
-                        </button>
-                      </div>
+            {filteredCourses.map((course) => {
+              const isAlreadyEnrolled = enrolledCourses.some(
+                (c) => c.course_id === course.id
+              );
+              return (
+                <div key={course.id} className="col">
+                  <div
+                    className="card shadow-sm border-0 d-flex flex-column"
+                    style={{ height: "450px" }} // يمكنك تعديل الرقم حسب حاجتك
+                  >
+                    <img
+                      src={`http://localhost:5000/uploads/${encodeURIComponent(
+                        course.thumbnail_url
+                      )}`}
+                      className="card-img-top w-100"
+                      style={{ height: "200px", objectFit: "cover" }}
+                      alt={course.title}
+                    />
+
+                    <div className="card-body overflow-auto">
+                      <h5 className="card-title text-truncate">
+                        {course.title}
+                      </h5>
+                      <p
+                        className="card-text small text-truncate"
+                        title={course.description}
+                      >
+                        {course.description}
+                      </p>
+                      <p className="text-muted small mb-0">
+                        Category:{" "}
+                        {categories.find((c) => c.id === course.category_id)
+                          ?.name || "Uncategorized"}
+                      </p>
+                    </div>
+
+                    <div className="card-footer bg-white border-0 mt-auto">
+                      <button
+                        className="btn w-100 fw-bold"
+                        style={{
+                          backgroundColor: isAlreadyEnrolled
+                            ? "#ccc"
+                            : "#18547a",
+                          color: "#c7f6f4",
+                          cursor: isAlreadyEnrolled ? "not-allowed" : "pointer",
+                        }}
+                        onClick={() => !isAlreadyEnrolled && enroll(course)}
+                        disabled={
+                          isAlreadyEnrolled || enrollingCourseId === course.id
+                        }
+                      >
+                        {isAlreadyEnrolled
+                          ? "Enrolled"
+                          : enrollingCourseId === course.id
+                          ? "Enrolling..."
+                          : "Enroll"}
+                      </button>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
           </div>
         )}
       </>
@@ -285,7 +304,10 @@ export const StudentDashboard = () => {
 
   return (
     <div className="d-flex">
-      <StudentSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <StudentSidebar
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      />
       <div className="container" style={{ maxWidth: "900px" }}>
         <h1 className="fw-bold mb-4 text-center" style={{ color: "#18547a" }}>
           🎓 {studentName}'s Dashboard

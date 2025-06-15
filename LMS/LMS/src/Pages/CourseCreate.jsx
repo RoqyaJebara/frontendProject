@@ -1,42 +1,65 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export const CourseCreate = ({ onCreate }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const instructorIdFromState = location.state?.instructorId || "";
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    instructor_id: "",
+    instructor_id: instructorIdFromState,
     category_id: "",
     price: "",
     is_published: "false",
-    is_approved: "false"
+    is_approved: "false",
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [instructors, setInstructors] = useState([]);
   const [preview, setPreview] = useState(null);
 
+  // جديد: اسم المعلم فقط
+  const [instructorName, setInstructorName] = useState("");
+
   useEffect(() => {
-    const fetchData = async () => {
+    // جلب التصنيفات فقط
+    const fetchCategories = async () => {
       try {
-        const [catRes, instRes] = await Promise.all([
-          fetch("http://localhost:5000/categories"),
-          fetch("http://localhost:5000/users/role/instructors"),
-        ]);
-
+        const catRes = await fetch("http://localhost:5000/categories");
         const categoriesData = await catRes.json();
-        const instructorsData = await instRes.json();
-
         setCategories(categoriesData);
-        setInstructors(instructorsData);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching categories:", err);
       }
     };
-    fetchData();
+    fetchCategories();
   }, []);
+
+  // جلب اسم المعلم بناءً على instructor_id
+  useEffect(() => {
+    if (!instructorIdFromState) {
+      setInstructorName("");
+      return;
+    }
+    const fetchInstructorName = async () => {
+      try {
+        // استدعاء API لجلب بيانات المعلم حسب id
+        const res = await fetch(`http://localhost:5000/users/${instructorIdFromState}`);
+        if (!res.ok) throw new Error("Failed to fetch instructor");
+        const data = await res.json();
+        setInstructorName(data.name || "Unknown");
+      } catch (error) {
+        console.error("Error fetching instructor name:", error);
+        setInstructorName("Unknown");
+      }
+    };
+    fetchInstructorName();
+  }, [instructorIdFromState]);
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, instructor_id: instructorIdFromState }));
+  }, [instructorIdFromState]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -52,7 +75,16 @@ export const CourseCreate = ({ onCreate }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const dataToSend = { ...formData, is_published: "false" ,is_approved:"false"};
+    if (!formData.instructor_id) {
+      alert("Instructor ID is missing. Cannot create course.");
+      return;
+    }
+
+    const dataToSend = {
+      ...formData,
+      is_published: "false",
+      is_approved: "false",
+    };
 
     const formPayload = new FormData();
     for (const key in dataToSend) {
@@ -109,22 +141,15 @@ export const CourseCreate = ({ onCreate }) => {
           />
         </div>
 
+        {/* عرض اسم المعلم فقط بدون اختيار */}
         <div className="mb-2">
           <label className="form-label">Instructor</label>
-          <select
-            name="instructor_id"
-            className="form-select"
-            value={formData.instructor_id}
-            onChange={handleChange}
-            required
-          >
-            <option value="">-- Select Instructor --</option>
-            {instructors.map((inst) => (
-              <option key={inst.id} value={inst.id}>
-                {inst.name}
-              </option>
-            ))}
-          </select>
+          <input
+            type="text"
+            className="form-control"
+            value={instructorName}
+            disabled
+          />
         </div>
 
         <div className="mb-2">
