@@ -18,6 +18,55 @@ export const Login = () => {
     }, 50);
   }, []);
 
+  // **تعامل Google OAuth**
+  const handleGoogleResponse = async (response) => {
+    const credential = response.credential;
+    if (!credential) {
+      setMessage("⚠ Failed to receive Google token.");
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:5000/api/auth1/google/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(`⚠ ${data.error || "Google login failed."}`);
+      } else {
+        setMessage("✅ Logged in successfully with Google!");
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+        setTimeout(() => {
+          if (data.user.role === "admin") navigate("/admin");
+          else if (data.user.role === "instructor") navigate("/instructor");
+          else if (data.user.role === "student")
+            navigate("/student", { state: { userId: data.user.id } });
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+      setMessage("⚠ An error occurred during Google login.");
+    }
+  };
+
+  // تحميل زر Google عند تحميل الكومبوننت
+  useEffect(() => {
+    if (window.google && google.accounts.id) {
+      google.accounts.id.initialize({
+        client_id: "389356347616-1dmsg5rh0ft9mekmql1bb3qdv53rffkr.apps.googleusercontent.com",
+        callback: handleGoogleResponse,
+        auto_select: false,
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("googleSignInDiv"),
+        { theme: "outline", size: "large", width: "300px" }
+      );
+    }
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -28,7 +77,9 @@ export const Login = () => {
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()+[\]{};':"\\|,.<>/?]).{8,}$/;
 
     if (!passwordRegex.test(password_hash)) {
-      setMessage("⚠ Password must be at least 8 characters and include uppercase, lowercase, number, and special character.");
+      setMessage(
+        "⚠ Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
+      );
       return;
     }
 
@@ -51,7 +102,6 @@ export const Login = () => {
       sessionStorage.setItem("user", JSON.stringify(data.user));
       setMessage("✅ Login successful!");
 
-      // توجيه حسب الدور
       if (data.user.role === "admin") navigate("/admin");
       else if (data.user.role === "instructor") navigate("/instructor");
       else if (data.user.role === "student") {
@@ -66,9 +116,19 @@ export const Login = () => {
   return (
     <div className="login-box mt-5">
       <h3 className="text-center text-info mb-4">Login to Your Account</h3>
+
+      {/* زر تسجيل الدخول بجوجل */}
+      <div
+        id="googleSignInDiv"
+        className="d-flex justify-content-center mb-3"
+        style={{ width: "100%", maxWidth: 320, margin: "0 auto" }}
+      ></div>
+
       <form onSubmit={handleLogin} autoComplete="off">
         <div className="mb-3">
-          <label htmlFor="email" className="form-label">Email address</label>
+          <label htmlFor="email" className="form-label">
+            Email address
+          </label>
           <input
             type="email"
             className="form-control"
@@ -82,7 +142,9 @@ export const Login = () => {
         </div>
 
         <div className="mb-3">
-          <label htmlFor="password_hash" className="form-label">Password</label>
+          <label htmlFor="password_hash" className="form-label">
+            Password
+          </label>
           <div className="input-group">
             <input
               type={showPassword ? "text" : "password"}
@@ -105,7 +167,11 @@ export const Login = () => {
         </div>
 
         {message && (
-          <div className={`mt-2 fw-bold ${message.startsWith("⚠") ? "text-danger" : "text-success"}`}>
+          <div
+            className={`mt-2 fw-bold ${
+              message.startsWith("⚠") ? "text-danger" : "text-success"
+            }`}
+          >
             {message}
           </div>
         )}

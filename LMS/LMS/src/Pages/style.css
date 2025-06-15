@@ -128,3 +128,19 @@ h1, h2, h3 {
   margin-right: 8px;
   vertical-align: middle;
 }
+.course-slide {
+  position: relative;
+  cursor: pointer;
+}
+
+.hover-description {
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.course-slide:hover .hover-description,
+.course-slide.group-hover-opacity:hover .hover-description {
+  opacity: 1;
+  z-index: 10;
+}
+

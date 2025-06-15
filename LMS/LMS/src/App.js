@@ -15,7 +15,7 @@ import { Courses } from "./Pages/Courses";
 
 import { StudentDashboard } from "./Pages/StudentDashboard";
 import { AdminDashboard } from "./Pages/AdminDashboard";
-import { InstructorDashboard } from "./Pages/instructorDashboard";
+import InstructorDashboard  from "./Pages/instructorDashboard";
 
 import { CourseCreate } from "./Pages/CourseCreate";
 import { CourseUpdate } from "./Pages/CourseUpdate";

@@ -4,7 +4,7 @@ import InstructorSidebar from "../Components/InstructorSidebar";
 import InstructorAnalytics from "../Components/InstructorAnalytics";
 import html2pdf from "html2pdf.js";
 
-export const InstructorDashboard = () => {
+const InstructorDashboard = () => {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [submissions, setSubmissions] = useState([]);
@@ -31,44 +31,71 @@ export const InstructorDashboard = () => {
       .save();
   };
 
+  // Fetch instructor details
   useEffect(() => {
+    if (!instructorId) return;
+
     const fetchInstructorDetails = async () => {
-      if (!instructorId) return;
       try {
-        const response = await fetch(
-          `http://localhost:5000/users/${instructorId}`
+        const res = await fetch(`http://localhost:5000/users/${instructorId}`);
+        if (!res.ok) throw new Error("Failed to fetch instructor details");
+        const data1 = await res.json();
+        setInstructorName(
+          (data1.name ?? `${(data1.first_name ?? "")} ${(data1.last_name ?? "")}`.trim()) || "Instructor"
         );
-        if (!response.ok) throw new Error("Failed to fetch instructor details");
-        const data = await response.json();
-        setInstructorName(data.name || `${data.first_name} ${data.last_name}`);
-      } catch (error) {
+      } catch {
         setInstructorName("Instructor");
       }
     };
+
     fetchInstructorDetails();
   }, [instructorId]);
 
+  // Fetch courses by instructor
   useEffect(() => {
+    if (!instructorId) return;
+
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/courses/instructor/${instructorId}`);
+        if (!res.ok) throw new Error("Failed to fetch courses");
+        const data = await res.json();
+        setCourses(data);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    fetchCourses();
+  }, [instructorId]);
+
+  // Fetch enrollments and map students with progress
+  useEffect(() => {
+    if (courses.length === 0) {
+      setStudents([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchEnrollments = async () => {
       try {
-        const response = await fetch("http://localhost:5000/enrollments");
-        if (!response.ok) throw new Error("Failed to fetch enrollments");
-        const data = await response.json();
+        const res = await fetch("http://localhost:5000/enrollments");
+        if (!res.ok) throw new Error("Failed to fetch enrollments");
+        const allEnrollments = await res.json();
 
+        const instructorCourseIds = courses.map((c) => c.course_id || c.id);
+
+        const filteredEnrollments = allEnrollments.filter((enr) =>
+          instructorCourseIds.includes(enr.course_id)
+        );
+
+        // Map students with their courses & progress
         const studentMap = {};
-        data.forEach((enrollment) => {
-          if (!studentMap[enrollment.user_id]) {
-            studentMap[enrollment.user_id] = {
-              id: enrollment.user_id,
-              name: enrollment.user_name,
-              enrolledCourses: [],
-            };
+        filteredEnrollments.forEach(({ user_id, user_name, course_id, course_title, progress }) => {
+          if (!studentMap[user_id]) {
+            studentMap[user_id] = { id: user_id, name: user_name, enrolledCourses: [] };
           }
-          studentMap[enrollment.user_id].enrolledCourses.push({
-            courseId: enrollment.course_id,
-            courseTitle: enrollment.course_title,
-            progress: enrollment.progress,
-          });
+          studentMap[user_id].enrolledCourses.push({ courseId: course_id, courseTitle: course_title, progress });
         });
 
         setStudents(Object.values(studentMap));
@@ -78,94 +105,81 @@ export const InstructorDashboard = () => {
         setLoading(false);
       }
     };
+
     fetchEnrollments();
-  }, []);
+  }, [courses]);
 
+  // Fetch submissions filtered by instructor courses
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:5000/courses/instructor/${instructorId}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch courses");
-        const data = await response.json();
-        setCourses(data);
-      } catch (error) {
-        setError(error.message);
-      }
-    };
-    if (instructorId) {
-      fetchCourses();
+    if (courses.length === 0) {
+      setSubmissions([]);
+      return;
     }
-  }, [instructorId]);
 
-  useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const response = await fetch("http://localhost:5000/submissions");
-        if (!response.ok) throw new Error("Failed to fetch submissions");
-        const data = await response.json();
-        setSubmissions(data);
+        const res = await fetch("http://localhost:5000/submissions");
+        if (!res.ok) throw new Error("Failed to fetch submissions");
+        const data = await res.json();
+
+        const instructorCourseIds = courses.map((c) => c.course_id || c.id);
+        // filter submissions related to instructor's courses
+        console.log(instructorCourseIds+"instructorCourseIds");
+        
+        const filtered = data.filter((s) => instructorCourseIds.includes(s.course_id));
+
+        setSubmissions(filtered);
       } catch (err) {
         console.error("Error fetching submissions:", err.message);
       }
     };
-    fetchSubmissions();
-  }, []);
 
+    fetchSubmissions();
+  }, [courses]);
+
+  // Delete course handler
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this course?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/courses/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete course");
-      setCourses(courses.filter((course) => course.id !== id));
-    } catch (error) {
-      alert(error.message);
+      const res = await fetch(`http://localhost:5000/courses/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete course");
+      setCourses((prev) => prev.filter((course) => (course.course_id || course.id) !== id));
+    } catch (err) {
+      alert(err.message);
     }
   };
 
+  // Update submission form inputs
   const handleSubmissionChange = (id, field, value) => {
     setSubmissions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
     );
   };
 
+  // Save submission grade and feedback update
   const saveSubmissionUpdate = async (submission) => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/assignments/${submission.id}/grade`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            grade: submission.grade,
-            feedback: submission.feedback,
-          }),
-        }
-      );
-      if (!response.ok) throw new Error("Failed to update submission");
+      const res = await fetch(`http://localhost:5000/assignments/${submission.id}/grade`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grade: submission.grade,
+          feedback: submission.feedback,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update submission");
       alert("Updated successfully");
     } catch (err) {
       alert("Error updating submission: " + err.message);
     }
   };
 
-  const courseMap = Object.fromEntries(
-    courses.map((course) => [course.id, course.title])
-  );
-  const getCourseTitle = (id) => courseMap[id] || "Unknown Course";
-
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div className="text-danger">Error: {error}</div>;
 
   return (
     <div className="d-flex container-fluid p-0" style={{ gap: "2rem" }}>
-      <InstructorSidebar
-        activeSection={activeSection}
-        setActiveSection={setActiveSection}
-      />
+      <InstructorSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
 
       <main style={{ flexGrow: 1 }}>
         <h1 className="fw-bold mb-4 text-center" style={{ color: "#18547a" }}>
@@ -173,49 +187,62 @@ export const InstructorDashboard = () => {
         </h1>
 
         <div className="mb-3 text-center">
-          <button
-            onClick={() => setActiveSection("courses")}
-            className="btn btn-outline-primary m-2"
-          >
-            📚 Courses
-          </button>
-          <button
-            onClick={() => setActiveSection("students")}
-            className="btn btn-outline-success m-2"
-          >
-            👨‍🎓 Students
-          </button>
-          <button
-            onClick={() => setActiveSection("submissions")}
-            className="btn btn-outline-secondary m-2"
-          >
-            📩 Submissions
-          </button>
-          <button
-            onClick={() => setActiveSection("analytics")}
-            className="btn btn-outline-dark m-2"
-          >
-            📊 Analytics
-          </button>
+          {["courses", "students", "submissions", "analytics"].map((section) => (
+            <button
+              key={section}
+              onClick={() => setActiveSection(section)}
+              className={`btn m-2 ${
+                activeSection === section
+                  ? "btn-primary"
+                  : section === "courses"
+                  ? "btn-outline-primary"
+                  : section === "students"
+                  ? "btn-outline-success"
+                  : section === "submissions"
+                  ? "btn-outline-secondary"
+                  : "btn-outline-dark"
+              }`}
+              aria-pressed={activeSection === section}
+              type="button"
+            >
+              {{
+                courses: "📚 Courses",
+                students: "👨‍🎓 Students",
+                submissions: "📩 Submissions",
+                analytics: "📊 Analytics",
+              }[section]}
+            </button>
+          ))}
         </div>
 
-        {/* Courses Section */}
         {activeSection === "courses" && (
           <>
             <section className="mb-4">
               <h4>➕ Create New Course</h4>
-              <Link to="/course_create">
-                <button className="btn btn-success btn-sm">
-                  Create Course
-                </button>
+              <Link to="/course_create" state={{ instructorId }}>
+                <button className="btn btn-success btn-sm">Create Course</button>
               </Link>
             </section>
 
             <section className="mb-5">
               <h4>📚 My Courses</h4>
-              <div className="table-responsive">
-                <table className="table table-bordered table-hover">
-                  <thead className="table-light">
+              <div
+                style={{
+                  maxHeight: "400px",
+                  overflowY: "auto",
+                  overflowX: "auto",
+                  width: "100%",
+                  minWidth: "300px",
+                  maxWidth: "100%",
+                  resize: "horizontal",
+                  border: "1px solid #ddd",
+                }}
+              >
+                <table
+                  className="table table-bordered table-hover align-middle"
+                  style={{ minWidth: "900px" }}
+                >
+                  <thead className="table-light text-center">
                     <tr>
                       <th>ID</th>
                       <th>Thumbnail</th>
@@ -231,46 +258,80 @@ export const InstructorDashboard = () => {
                   </thead>
                   <tbody>
                     {courses.map((course) => (
-                      <tr key={course.course_id}>
-                        <td>{course.course_id}</td>
-                        <td>
-                          {course.thumbnail_url && (
+                      <tr key={course.course_id || course.id}>
+                        <td className="text-center">{course.course_id || course.id}</td>
+                        <td className="text-center">
+                          {course.thumbnail_url ? (
                             <img
                               src={`http://localhost:5000/uploads/${encodeURIComponent(
                                 course.thumbnail_url
                               )}`}
                               alt={course.title}
-                              width="80"
-                              height="50"
-                              style={{ objectFit: "cover" }}
+                              style={{
+                                width: "80px",
+                                height: "50px",
+                                objectFit: "cover",
+                                borderRadius: "4px",
+                              }}
+                              title={course.title}
                             />
+                          ) : (
+                            <span className="text-muted">No Image</span>
                           )}
                         </td>
-                        <td>{course.title}</td>
-                        <td>{course.description}</td>
-                        <td>{course.category_name}</td>
-                        <td>{course.price} JD</td>
-                        <td>
+                        <td
+                          style={{
+                            maxWidth: "200px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={course.title}
+                        >
+                          {course.title}
+                        </td>
+                        <td
+                          style={{
+                            maxWidth: "300px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={course.description}
+                        >
+                          {course.description}
+                        </td>
+                        <td className="text-center">{course.category_name}</td>
+                        <td className="text-center">{course.price} JD</td>
+                        <td className="text-center">
                           {new Date(course.created_at).toLocaleDateString()}
                         </td>
-                        <td>{course.is_published === "true" ? "Yes" : "No"}</td>
-                        <td>{course.is_approved === "true" ? "Yes" : "No"}</td>
-                        <td>
+                        <td className="text-center">
+                          {course.is_published ? "Yes" : "No"}
+                        </td>
+                        <td className="text-center">
+                          {course.is_approved ? "Yes" : "No"}
+                        </td>
+                        <td className="text-center">
                           <Link
-                            to={`/course_update/${course.course_id}`}
-                            className="btn btn-info btn-sm me-2"
+                            to={`/course_update/${course.course_id || course.id}`}
+                            state={{ instructorId }}
+                            className="btn btn-info btn-sm me-2 mb-1"
+                            title="Edit Course"
                           >
                             Edit
                           </Link>
                           <Link
-                            to={`/course_editor/${course.course_id}`}
-                            className="btn btn-warning btn-sm me-2"
+                            to={`/course_editor/${course.course_id || course.id}`}
+                            className="btn btn-warning btn-sm me-2 mb-1"
+                            title="Manage Lessons"
                           >
                             Lessons
                           </Link>
                           <button
-                            onClick={() => handleDelete(course.course_id)}
-                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDelete(course.course_id || course.id)}
+                            className="btn btn-danger btn-sm mb-1"
+                            title="Delete Course"
                           >
                             Delete
                           </button>
@@ -284,7 +345,6 @@ export const InstructorDashboard = () => {
           </>
         )}
 
-        {/* Students Section */}
         {activeSection === "students" && (
           <section>
             <h4 className="mb-4">👨‍🎓 Student Progress</h4>
@@ -293,9 +353,7 @@ export const InstructorDashboard = () => {
                 <div key={student.id} className="col-md-6 col-lg-4 mb-4">
                   <div className="card h-100 shadow-sm border-0">
                     <div className="card-body">
-                      <h5 className="card-title fw-bold text-primary">
-                        {student.name}
-                      </h5>
+                      <h5 className="card-title fw-bold text-primary">{student.name}</h5>
                       <ul className="list-group list-group-flush mt-3">
                         {student.enrolledCourses.map((enrolled) => (
                           <li
@@ -303,9 +361,7 @@ export const InstructorDashboard = () => {
                             className="list-group-item d-flex justify-content-between align-items-center"
                           >
                             <span>{enrolled.courseTitle}</span>
-                            <span className="badge bg-success rounded-pill">
-                              {enrolled.progress}%
-                            </span>
+                            <span className="badge bg-success rounded-pill">{enrolled.progress}%</span>
                           </li>
                         ))}
                       </ul>
@@ -317,7 +373,6 @@ export const InstructorDashboard = () => {
           </section>
         )}
 
-        {/* Submissions Section */}
         {activeSection === "submissions" && (
           <section>
             <h4 className="mb-4">📩 Assignment Submissions</h4>
@@ -326,7 +381,7 @@ export const InstructorDashboard = () => {
                 <thead>
                   <tr>
                     <th>Student</th>
-                    <th>Section</th>
+                    <th>Course</th>
                     <th>Assignment</th>
                     <th>Content</th>
                     <th>File</th>
@@ -343,16 +398,16 @@ export const InstructorDashboard = () => {
                       <td>{submission.lesson_name}</td>
                       <td>{submission.lesson_content}</td>
                       <td>
-                        {submission.submission_url && (
+                        {submission.submission_url ? (
                           <a
-                            href={`http://localhost:5000/uploads/${encodeURIComponent(
-                              submission.submission_url
-                            )}`}
+                            href={`http://localhost:5000/uploads/${encodeURIComponent(submission.submission_url)}`}
                             download
                             rel="noopener noreferrer"
                           >
                             Download
                           </a>
+                        ) : (
+                          <span className="text-muted">No file</span>
                         )}
                       </td>
                       <td>
@@ -361,11 +416,7 @@ export const InstructorDashboard = () => {
                           value={submission.grade || ""}
                           className="form-control"
                           onChange={(e) =>
-                            handleSubmissionChange(
-                              submission.id,
-                              "grade",
-                              e.target.value
-                            )
+                            handleSubmissionChange(submission.id, "grade", e.target.value)
                           }
                         />
                       </td>
@@ -375,11 +426,7 @@ export const InstructorDashboard = () => {
                           value={submission.feedback || ""}
                           className="form-control"
                           onChange={(e) =>
-                            handleSubmissionChange(
-                              submission.id,
-                              "feedback",
-                              e.target.value
-                            )
+                            handleSubmissionChange(submission.id, "feedback", e.target.value)
                           }
                         />
                       </td>
@@ -393,47 +440,47 @@ export const InstructorDashboard = () => {
                       </td>
                     </tr>
                   ))}
+                  {submissions.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="text-center text-muted">
+                        No submissions found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </section>
         )}
 
-        {/* Analytics Section with PDF Export */}
-    
-         {activeSection === "analytics" && (
-  <div>
-    <div className="d-flex justify-content-between align-items-center mb-3">
-      <h3 className="m-0">📊 Instructor Analytics</h3>
-      <div>
-        <button
-          className="btn btn-outline-primary me-2"
-          onClick={() => window.print()}
-        >
-          🖨️ Print
-        </button>
-        <button
-          className="btn btn-outline-primary"
-          onClick={handlePrint}
-        >
-          📄 Export PDF
-        </button>
-      </div>
-    </div>
-    <div ref={analyticsRef}>
-      <InstructorAnalytics
-        courses={courses}
-        students={students}
-        role="instructor"
-      />
-    </div>
-  </div>
-)}
-
-            
-            
-        
-        
+        {activeSection === "analytics" && (
+          <div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h3 className="m-0">📊 Instructor Analytics</h3>
+              <div>
+                <button
+                  className="btn btn-outline-primary me-2"
+                  onClick={() => window.print()}
+                  title="Print"
+                  aria-label="Print dashboard"
+                >
+                  🖨️ Print
+                </button>
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={handlePrint}
+                  title="Export PDF"
+                  aria-label="Export dashboard as PDF"
+                >
+                  📄 Export PDF
+                </button>
+              </div>
+            </div>
+            <div ref={analyticsRef}>
+              <InstructorAnalytics courses={courses} students={students} role="instructor" />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
