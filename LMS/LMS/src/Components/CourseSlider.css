@@ -1,0 +1,93 @@
+.preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(24, 84, 122, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  backdrop-filter: blur(3px);
+}
+
+.preview-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 700px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  animation: fadeInScale 0.3s ease;
+}
+
+.preview-img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.preview-content p {
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+ .course-slide {
+          position: relative;
+        }
+        .course-detail-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(24, 84, 122, 0.85); /* لون شبه شفاف */
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.3s ease, visibility 0.3s ease;
+          border-radius: 8px;
+          text-align: center;
+        }
+        .course-slide:hover .course-detail-overlay,
+        .course-slide:focus-within .course-detail-overlay {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        /* إخفاء overlay في الشاشات الصغيرة */
+        @media (max-width: 768px) {
+          .course-detail-overlay {
+            display: none !important;
+          }
+        }

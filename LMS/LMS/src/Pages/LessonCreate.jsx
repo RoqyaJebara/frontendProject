@@ -42,7 +42,7 @@ console.log("createdLesson = response.data"+createdLesson.id);
       if (form.content_type === "quiz") {
         // الآن ننشئ اختبار جديد مربوط بالدرس الذي أنشأناه
         const quizResponse = await axios.post("http://localhost:5000/quizzes/", {
-          lesson_id: createdLesson.id,max_score:10
+          lesson_id: createdLesson.id,max_score:5
         });
 
         const createdQuiz = quizResponse.data;
