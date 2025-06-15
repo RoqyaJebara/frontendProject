@@ -295,11 +295,28 @@ export const CourseViewer = () => {
                     )}
 
                     {lesson.content_type === "video" && (
-                            <iframe
-                              src={lesson.content}
-                              title={lesson.title}
-                              allowFullScreen
-                            ></iframe>
+                      <div
+                        style={{
+                          position: "relative",
+                          paddingBottom: "56.25%",
+                          height: 0,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <iframe
+                          src={lesson.content}
+                          title={lesson.title}
+                          allowFullScreen
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            border: "none",
+                          }}
+                        ></iframe>
+                      </div>
                     )}
 
                     {lesson.content_type === "quiz" && (
@@ -319,64 +336,61 @@ export const CourseViewer = () => {
                     )}
 
                     {lesson.content_type === "assignment" && (
-                          <div className="mt-3 p-3 border rounded bg-warning-subtle">
-                            <h6 className="mb-2 text-dark">
-                              📎 Assignment Instructions
-                            </h6>
+                      <div className="mt-3 p-3 border rounded bg-warning-subtle">
+                        <h6 className="mb-2 text-dark">
+                          📎 Assignment Instructions
+                        </h6>
 
-                            {/* ✅ عرض محتوى الدرس */}
-                            <div
-                              className="mb-3"
-                              dangerouslySetInnerHTML={{
-                                __html: lesson.content,
-                              }}
-                            />
+                        {/* ✅ عرض محتوى الدرس */}
+                        <div
+                          className="mb-3"
+                          dangerouslySetInnerHTML={{
+                            __html: lesson.content,
+                          }}
+                        />
 
-                            <h6>Upload Your Assignment</h6>
-                            <form
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                const fileInput =
-                                  e.target.elements.assignmentFile;
-                                const formData = new FormData();
-                                formData.append("file", fileInput.files[0]);
-                                formData.append("userId", userId);
-                                formData.append("lessonId", lesson.id);
+                        <h6>Upload Your Assignment</h6>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const fileInput = e.target.elements.assignmentFile;
+                            const formData = new FormData();
+                            formData.append("file", fileInput.files[0]);
+                            formData.append("userId", userId);
+                            formData.append("lessonId", lesson.id);
 
-                                axios
-                                  .post(
-                                    `http://localhost:5000/assignments/${userId}/submit`,
-                                    formData,
-                                    {
-                                      headers: {
-                                        "Content-Type": "multipart/form-data",
-                                      },
-                                    }
-                                  )
-                                  .then(() =>
-                                    alert("File uploaded successfully")
-                                  )
-                                  .catch((err) => {
-                                    console.error("Upload error:", err);
-                                    alert("Failed to upload file");
-                                  });
-                              }}
-                            >
-                              <input
-                                type="file"
-                                name="assignmentFile"
-                                className="form-control mb-2"
-                                required
-                              />
-                              <button
-                                type="submit"
-                                className="btn btn-success btn-sm"
-                              >
-                                📤 Upload Assignment
-                              </button>
-                            </form>
-                          </div>
-                        )}
+                            axios
+                              .post(
+                                `http://localhost:5000/assignments/${userId}/submit`,
+                                formData,
+                                {
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              )
+                              .then(() => alert("File uploaded successfully"))
+                              .catch((err) => {
+                                console.error("Upload error:", err);
+                                alert("Failed to upload file");
+                              });
+                          }}
+                        >
+                          <input
+                            type="file"
+                            name="assignmentFile"
+                            className="form-control mb-2"
+                            required
+                          />
+                          <button
+                            type="submit"
+                            className="btn btn-success btn-sm"
+                          >
+                            📤 Upload Assignment
+                          </button>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 );
               }

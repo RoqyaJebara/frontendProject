@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
+const QuizViewer = ({ lessonId, userId, courseId }) => {
+  console.log("lessonId:", lessonId, "courseId:", courseId, "userId:", userId);
+
   const [quiz, setQuiz] = useState(null);
-  const [quizId, setQuizId] = useState(null);  // حفظ quizId صراحة
+  const [quizId, setQuizId] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -14,22 +16,27 @@ const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
     const fetchQuizAndQuestions = async () => {
       try {
         setLoading(true);
+
+        // جلب بيانات الكويز (مثل العنوان، الدرجة القصوى)
         const quizRes = await axios.get(`http://localhost:5000/quizzes/${lessonId}`);
         const quizData = quizRes.data;
         setQuiz(quizData);
-        setQuizId(quizData.id);  // هنا
 
-        const questionsRes = await axios.get(`http://localhost:5000/questions/${quizData.id}`);
-        setQuestions(questionsRes.data);
+        // جلب الأسئلة والquizId باستخدام lessonId
+        const questionsRes = await axios.get(`http://localhost:5000/questions/${lessonId}`);
+        const { quizId: fetchedQuizId, questions } = questionsRes.data;
+        setQuizId(fetchedQuizId);
+        setQuestions(questions);
 
-        // تحقق من محاولة سابقة باستخدام quizId
-        const saved = localStorage.getItem(`quiz_${quizData.id}_${userId}`);
+        // التحقق من محاولة سابقة
+        const saved = localStorage.getItem(`quiz_${fetchedQuizId}_${userId}`);
         if (saved) {
           const { savedAnswers, savedScore } = JSON.parse(saved);
           setSelectedAnswers(savedAnswers);
           setScore(savedScore);
           setSubmitted(true);
         }
+
         setLoading(false);
       } catch (error) {
         console.error("Error loading quiz or questions:", error);
@@ -49,7 +56,6 @@ const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
     if (submitted) return;
 
     try {
-      // حساب النتيجة
       let calculatedScore = 0;
       questions.forEach((q) => {
         if (selectedAnswers[q.id] === q.correct_answer) {
@@ -57,7 +63,6 @@ const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
         }
       });
 
-      // إرسال البيانات مع quizId
       await axios.post("http://localhost:5000/quizzes/quiz-grades", {
         lessonId,
         quizId,
@@ -66,7 +71,6 @@ const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
         grade: calculatedScore,
       });
 
-      // حفظ في localStorage باستخدام quizId
       localStorage.setItem(
         `quiz_${quizId}_${userId}`,
         JSON.stringify({ savedAnswers: selectedAnswers, savedScore: calculatedScore })
@@ -74,8 +78,6 @@ const QuizViewer = ({ lessonId, userId, onQuizSubmitted }) => {
 
       setScore(calculatedScore);
       setSubmitted(true);
-
-      if (onQuizSubmitted) onQuizSubmitted();
     } catch (error) {
       console.error("Error submitting quiz:", error);
       alert("حدث خطأ أثناء إرسال الإجابات، حاول مرة أخرى.");

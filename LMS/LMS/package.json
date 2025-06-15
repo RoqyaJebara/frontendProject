@@ -754,11 +754,6 @@
     
     
     
-  "eslint-plugin-react-hooks": "^4.6.0",
-  
-    
-    
-    
   "eslint-plugin-testing-library": "^5.11.1",
   
     
@@ -2204,7 +2199,7 @@
     
     
     
-  "react-router-dom": "^7.6.1",
+  "react-router-dom": "^7.6.2",
   
     
     
@@ -2803,6 +2798,17 @@
     
     
   ]
+  
+    
+  },
+  
+    
+  "devDependencies": {
+  
+    
+    
+    
+  "eslint-plugin-react-hooks": "^5.2.0"
   
     
   }
