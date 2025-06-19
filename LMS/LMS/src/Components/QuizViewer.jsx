@@ -18,12 +18,16 @@ const QuizViewer = ({ lessonId, userId, courseId }) => {
         setLoading(true);
 
         // جلب بيانات الكويز (مثل العنوان، الدرجة القصوى)
-        const quizRes = await axios.get(`http://localhost:5000/quizzes/${lessonId}`);
+        const quizRes = await axios.get(
+          `http://localhost:5000/quizzes/${lessonId}`
+        );
         const quizData = quizRes.data;
         setQuiz(quizData);
 
         // جلب الأسئلة والquizId باستخدام lessonId
-        const questionsRes = await axios.get(`http://localhost:5000/questions/${lessonId}`);
+        const questionsRes = await axios.get(
+          `http://localhost:5000/questions/${lessonId}`
+        );
         const { quizId: fetchedQuizId, questions } = questionsRes.data;
         setQuizId(fetchedQuizId);
         setQuestions(questions);
@@ -56,27 +60,40 @@ const QuizViewer = ({ lessonId, userId, courseId }) => {
     if (submitted) return;
 
     try {
-      let calculatedScore = 0;
+      let correctPoints = 0;
+      let totalPoints = 0;
+
       questions.forEach((q) => {
+        const points = q.points || 1; // إذا لا يوجد نقاط محددة لكل سؤال نفترض 1
+        totalPoints += points;
         if (selectedAnswers[q.id] === q.correct_answer) {
-          calculatedScore += q.points || 1;
+          correctPoints += points;
         }
       });
 
+      // حساب الدرجة من 5
+      const scoreOutOfFive =
+        totalPoints > 0 ? (correctPoints / totalPoints) * 5 : 0;
+
+      // حفظ النتيجة في الباكند
       await axios.post("http://localhost:5000/quizzes/quiz-grades", {
         lessonId,
         quizId,
         userId,
         answers: selectedAnswers,
-        grade: calculatedScore,
+        grade: scoreOutOfFive,
       });
 
+      // حفظ محلي (اختياري)
       localStorage.setItem(
         `quiz_${quizId}_${userId}`,
-        JSON.stringify({ savedAnswers: selectedAnswers, savedScore: calculatedScore })
+        JSON.stringify({
+          savedAnswers: selectedAnswers,
+          savedScore: scoreOutOfFive,
+        })
       );
 
-      setScore(calculatedScore);
+      setScore(scoreOutOfFive);
       setSubmitted(true);
     } catch (error) {
       console.error("Error submitting quiz:", error);
@@ -123,9 +140,11 @@ const QuizViewer = ({ lessonId, userId, courseId }) => {
         </button>
       ) : (
         <div className="alert alert-success mt-3">
-          Your Score: <strong>{score}</strong>
+          Your Score: <strong>{score.toFixed(2)} / 5</strong>
           <br />
-          <small className="text-muted">You have already attempted this quiz.</small>
+          <small className="text-muted">
+            You have already attempted this quiz.
+          </small>
         </div>
       )}
     </div>

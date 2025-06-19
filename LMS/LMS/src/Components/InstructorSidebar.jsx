@@ -41,6 +41,7 @@ const InstructorSidebar = ({ activeSection, setActiveSection }) => {
             🧑‍🎓 Students
           </button>
         </li>
+        
         <li className="nav-item mb-2">
           <button
             className={`nav-link btn btn-link text-start ${
@@ -51,6 +52,18 @@ const InstructorSidebar = ({ activeSection, setActiveSection }) => {
             onClick={() => setActiveSection("submissions")}
           >
             📩 Submissions
+          </button>
+        </li>
+        <li className="nav-item mb-2">
+          <button
+            className={`nav-link btn btn-link text-start ${
+              activeSection === "quizGrades"
+                ? "fw-bold text-info"
+                : "fw-bold text-black"
+            }`}
+            onClick={() => setActiveSection("quizGrades")}
+          >
+            📝 Quiz Grades
           </button>
         </li>
         <li className="nav-item mb-2">
