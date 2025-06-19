@@ -228,9 +228,8 @@ const InstructorDashboard = () => {
               <h4>📚 My Courses</h4>
               <div
                 style={{
-                  maxHeight: "400px",
-                  overflowY: "auto",
-                  overflowX: "auto",
+                  
+                  
                   width: "100%",
                   minWidth: "300px",
                   maxWidth: "100%",
@@ -310,7 +309,7 @@ const InstructorDashboard = () => {
                           {course.is_published ? "Yes" : "No"}
                         </td>
                         <td className="text-center">
-                          {course.is_approved ? "Yes" : "No"}
+                          {course.is_approved==='true' ? "Yes" : "No"}
                         </td>
                         <td className="text-center">
                           <Link
