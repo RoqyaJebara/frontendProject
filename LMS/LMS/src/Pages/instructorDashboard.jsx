@@ -8,6 +8,7 @@ const InstructorDashboard = () => {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [quizGrades, setQuizGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState("courses");
@@ -123,9 +124,6 @@ const InstructorDashboard = () => {
         const data = await res.json();
 
         const instructorCourseIds = courses.map((c) => c.course_id || c.id);
-        // filter submissions related to instructor's courses
-        console.log(instructorCourseIds+"instructorCourseIds");
-        
         const filtered = data.filter((s) => instructorCourseIds.includes(s.course_id));
 
         setSubmissions(filtered);
@@ -135,6 +133,30 @@ const InstructorDashboard = () => {
     };
 
     fetchSubmissions();
+  }, [courses]);
+
+  // Fetch quiz grades for instructor's courses
+  useEffect(() => {
+    if (courses.length === 0) return;
+
+    const fetchQuizGrades = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/quizzes/grades");
+        if (!res.ok) throw new Error("Failed to fetch quiz grades");
+        const data = await res.json();
+
+        const instructorCourseIds = courses.map((c) => c.course_id || c.id);
+        const filtered = data.filter((grade) => 
+          instructorCourseIds.includes(grade.course_id)
+        );
+
+        setQuizGrades(filtered);
+      } catch (err) {
+        console.error("Error fetching quiz grades:", err.message);
+      }
+    };
+
+    fetchQuizGrades();
   }, [courses]);
 
   // Delete course handler
@@ -187,7 +209,7 @@ const InstructorDashboard = () => {
         </h1>
 
         <div className="mb-3 text-center">
-          {["courses", "students", "submissions", "analytics"].map((section) => (
+          {["courses", "students", "submissions", "quizGrades", "analytics"].map((section) => (
             <button
               key={section}
               onClick={() => setActiveSection(section)}
@@ -200,6 +222,8 @@ const InstructorDashboard = () => {
                   ? "btn-outline-success"
                   : section === "submissions"
                   ? "btn-outline-secondary"
+                  : section === "quizGrades"
+                  ? "btn-outline-info"
                   : "btn-outline-dark"
               }`}
               aria-pressed={activeSection === section}
@@ -209,6 +233,7 @@ const InstructorDashboard = () => {
                 courses: "📚 Courses",
                 students: "👨‍🎓 Students",
                 submissions: "📩 Submissions",
+                quizGrades: "📝 Quiz Grades",
                 analytics: "📊 Analytics",
               }[section]}
             </button>
@@ -228,8 +253,6 @@ const InstructorDashboard = () => {
               <h4>📚 My Courses</h4>
               <div
                 style={{
-                  
-                  
                   width: "100%",
                   minWidth: "300px",
                   maxWidth: "100%",
@@ -452,6 +475,47 @@ const InstructorDashboard = () => {
           </section>
         )}
 
+        {activeSection === "quizGrades" && (
+          <section>
+            <h4 className="mb-4">📝 Quiz Grades</h4>
+            <div className="table-responsive">
+              <table className="table table-striped table-bordered">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Quiz</th>
+                    <th>Score</th>
+                    <th>Total</th>
+                    <th>Percentage</th>
+                    {/* <th>Completed At</th> */}
+                  </tr>
+                </thead>
+                <tbody>
+                  {quizGrades.map((grade) => (
+                    <tr key={grade.id}>
+                      <td>{grade.student_name}</td>
+                      <td>{grade.course_title}</td>
+                      <td>{grade.lesson_title}</td>
+                      <td>{grade.grade }</td>
+                      <td>{grade.max_score}</td>
+                      <td>{Math.round((parseInt(grade.grade )/ parseInt(grade.max_score)) * 100)}%</td>
+                      {/* <td>{new Date(grade.completed_at).toLocaleString()}</td> */}
+                    </tr>
+                  ))}
+                  {quizGrades.length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="text-center text-muted">
+                        No quiz grades found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         {activeSection === "analytics" && (
           <div>
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -471,12 +535,17 @@ const InstructorDashboard = () => {
                   title="Export PDF"
                   aria-label="Export dashboard as PDF"
                 >
-                  📄 Export PDF
+                  📄 Report PDF
                 </button>
               </div>
             </div>
             <div ref={analyticsRef}>
-              <InstructorAnalytics courses={courses} students={students} role="instructor" />
+              <InstructorAnalytics 
+                courses={courses} 
+                students={students} 
+                quizGrades={quizGrades}
+                role="instructor" 
+              />
             </div>
           </div>
         )}

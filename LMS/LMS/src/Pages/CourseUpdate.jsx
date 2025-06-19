@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 export const CourseUpdate = () => {
   const { id } = useParams();
-
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,8 +14,7 @@ export const CourseUpdate = () => {
     instructor_id: instructorIdFromLink,
     category_id: "",
     price: "",
-    is_published: "",
-    is_approved: "false",
+    is_published: "false", // نص وليس boolean
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -43,9 +41,11 @@ export const CourseUpdate = () => {
           instructor_id: courseData.instructor_id,
           category_id: courseData.category_id,
           price: courseData.price,
-          is_published: ` ${courseData.is_published}`,
+          is_published: courseData.is_published || "false", // نص كما هو
         });
+
         // setPreview(`http://localhost:5000/uploads/${courseData.thumbnail_url}`);
+
         setCategories(categoriesData);
         setInstructors(instructorsData);
       } catch (err) {
@@ -58,10 +58,19 @@ export const CourseUpdate = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+
+    if (type === "checkbox") {
+      // عند تغيير checkbox: نخزن "true" أو "false" نصيًا
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked ? "true" : "false",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleFileChange = (e) => {
@@ -71,33 +80,41 @@ export const CourseUpdate = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const formPayload = new FormData();
-    for (const key in formData) {
+  const formPayload = new FormData();
+
+  // تأكد من إرسال is_published = "true" دائماً
+  for (const key in formData) {
+    if (key === "is_published") {
+      formPayload.append(key, "true");
+    } else {
       formPayload.append(key, formData[key]);
     }
-    if (thumbnailFile) {
-      formPayload.append("thumbnail", thumbnailFile);
-    }
+  }
 
-    try {
-      const response = await fetch(`http://localhost:5000/courses/${id}`, {
-        method: "PUT",
-        body: formPayload,
-      });
+  if (thumbnailFile) {
+    formPayload.append("thumbnail", thumbnailFile);
+  }
 
-      if (response.ok) {
-        alert("✅ Course updated successfully!");
-        navigate("/instructor");
-      } else {
-        alert("❌ Failed to update course.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error occurred while updating course.");
+  try {
+    const response = await fetch(`http://localhost:5000/courses/${id}`, {
+      method: "PUT",
+      body: formPayload,
+    });
+
+    if (response.ok) {
+      alert("✅ Course updated successfully!");
+      navigate("/instructor");
+    } else {
+      alert("❌ Failed to update course.");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error occurred while updating course.");
+  }
+};
+
 
   return (
     <div className="container card p-4 my-5">
@@ -194,7 +211,7 @@ export const CourseUpdate = () => {
             type="checkbox"
             name="is_published"
             className="form-check-input"
-            checked={formData.is_published}
+            checked={formData.is_published === "true"} // 
             onChange={handleChange}
           />
           <label className="form-check-label">Published</label>
