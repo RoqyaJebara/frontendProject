@@ -85,7 +85,7 @@ export const Register = () => {
           password_hash: password,
           role: "student",
           oauth_provider: "LMS",
-          oauth_id: null,
+          oauth_id: '2',
           is_active: true,
         }),
       });
