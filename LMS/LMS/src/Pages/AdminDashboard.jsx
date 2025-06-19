@@ -76,38 +76,47 @@ export const AdminDashboard = () => {
       .catch(console.error);
   };
 
-  const approveCourse = (id) => {
-    fetch(`http://localhost:5000/courses/${id}/approval`, {
+const approveCourse = async (id) => {
+  try {
+    const res = await fetch(`http://localhost:5000/courses/${id}/approval`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_approved: 'true' }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to approve course");
-        return res.json();
-      })
-      .then(() => {
-        setCourses(courses.map((c) => (c.id === id ? { ...c, is_approved: true } : c)));
-      })
-      .catch(console.error);
-  };
+      body: JSON.stringify({ is_approved: true }), // ✅ Boolean, not string
+    });
 
-  const rejectCourse = (id) => {
-    fetch(`http://localhost:5000/courses/${id}/approval`, {
+    if (!res.ok) throw new Error("Failed to approve course");
+
+    const updated = await res.json();
+    setCourses((prevCourses) =>
+      prevCourses.map((course) =>
+        course.id === id ? { ...course, is_approved: updated.is_approved } : course
+      )
+    );
+  } catch (error) {
+    console.error("Error approving course:", error);
+  }
+};
+
+const rejectCourse = async (id) => {
+  try {
+    const res = await fetch(`http://localhost:5000/courses/${id}/approval`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_approved: 'false' }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to reject course");
-        return res.json();
-      })
-      .then(() => {
-        setCourses(courses.map((c) => (c.id === id ? { ...c, is_approved: false } : c)));
-      })
-      .catch(console.error);
-  };
+      body: JSON.stringify({ is_approved: false }), // ✅ Boolean
+    });
 
+    if (!res.ok) throw new Error("Failed to reject course");
+
+    const updated = await res.json();
+    setCourses((prevCourses) =>
+      prevCourses.map((course) =>
+        course.id === id ? { ...course, is_approved: updated.is_approved } : course
+      )
+    );
+  } catch (error) {
+    console.error("Error rejecting course:", error);
+  }
+};
   const deleteCategory = (id) => {
     fetch(`http://localhost:5000/categories/${id}`, { method: "DELETE" })
       .then(() => setCategories(categories.filter((cat) => cat.id !== id)))
@@ -212,9 +221,9 @@ export const AdminDashboard = () => {
                   {courses.map((c) => (
                     <tr key={c.id}>
                       <td>{c.title}</td>
-                      <td>{c.is_approved ? "✅ Approved" : "❌ Not Approved"}</td>
+                      <td>{(c.is_approved ==="true")? "✅ Approved" : "❌ Not Approved"}</td>
                       <td>
-                        {!c.is_approved ? (
+                        {(c.is_approved==="false" )? (
                           <button className="btn btn-sm btn-success me-2" onClick={() => approveCourse(c.id)}>Approve</button>
                         ) : (
                           <button className="btn btn-sm btn-info me-2" onClick={() => rejectCourse(c.id)}>Reject</button>
@@ -260,7 +269,7 @@ export const AdminDashboard = () => {
           {activeSection === "analytics" && (
             <section>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3>Course Analytics</h3>
+                <h3>Analytics</h3>
                 <div>
                   <button
                     className="btn btn-outline-primary me-2 no-print"
