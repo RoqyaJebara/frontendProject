@@ -5,7 +5,9 @@ import LessonForm from '../Components/Lesson'
 
 const AdminSidebar = ({ activeSection, setActiveSection }) => {
   return (
-    <div className="bg-light border-end p-3" style={{ minHeight: "100vh", width: "220px" }}>
+    <div className="bg-light border-end p-3" style={{   width: "220px", // fixed width
+        // prevents shrinking
+        minHeight: "100vh", }}>
       <h4 style={{ color: "#18547a" }}className="fw-bold  text-center mb-4">Admin Panel</h4>
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
