@@ -6,7 +6,6 @@ const InstructorSidebar = ({ activeSection, setActiveSection }) => {
       className="bg-light border-end"
       style={{
         width: "220px", // fixed width
-        minWidth: "220px", // prevents shrinking
         minHeight: "100vh",
       }}
     >
